@@ -17,6 +17,19 @@ multi-tenancy on top of the standalone payroll app in `../index.html`:
   individual contracts (daily/monthly/project/hourly), kept out of the
   regular employee table.
 - **Branches**.
+- **Payroll runs** — one run per month/year, with a line per employee
+  (basic/housing/transport/other/overtime/bonus, absence days, deductions).
+  Gross/net pay is computed server-side in `src/payrollCalc.js` (ported
+  from the original app's `calcEmp`) and stored as a snapshot per line, so
+  a later salary change never rewrites payroll history.
+- **Advances & settlements** — cash advances with monthly deduction plans;
+  status (pending/partial/settled) is derived from the sum of recorded
+  settlements, never stored redundantly.
+- **End-of-service gratuity (EOS)** — KSA Labor Law Art. 84 (resignation)
+  / Art. 87 (termination) calculation, ported from the original app's
+  `calcKsaEos`. The client only picks who and why; the gratuity figure is
+  always computed server-side from the employee's real hire date and
+  salary — it cannot be submitted directly.
 
 This is a genuinely secure design (passwords hashed with bcrypt, JWT auth,
 every write/read checked server-side against the caller's role for that
@@ -83,6 +96,21 @@ GET|PATCH|DELETE /api/companies/:id/contractors/:cid
 
 GET|POST    /api/companies/:id/branches
 PATCH|DELETE /api/companies/:id/branches/:bid
+
+GET|POST    /api/companies/:id/payroll-runs
+GET|PATCH|DELETE /api/companies/:id/payroll-runs/:runId
+POST        /api/companies/:id/payroll-runs/:runId/generate   pull in every active employee as a line
+PATCH|DELETE /api/companies/:id/payroll-runs/:runId/lines/:lineId
+
+GET|POST    /api/companies/:id/advances
+GET|DELETE  /api/companies/:id/advances/:advId
+POST        /api/companies/:id/advances/:advId/settlements
+
+GET         /api/companies/:id/settlements        (flat list across all advances)
+DELETE      /api/companies/:id/settlements/:setlId
+
+GET|POST    /api/companies/:id/eos
+PATCH|DELETE /api/companies/:id/eos/:eosId         (status: Pending → Approved → Paid)
 ```
 
 Every `/api/companies/:id/...` route requires the caller to hold a role in
@@ -92,15 +120,16 @@ a member of returns `403`, not the other company's data.
 
 ## What's covered vs. what's still in the legacy single-file app
 
-This backend currently covers company/user/role management, employees,
-contractors, and branches — enough to demonstrate and use real multi-company
-security end to end. The payroll run itself (monthly salary slips, advances,
-settlements, end-of-service gratuity, printable reports, org chart, KPIs)
-still lives only in `../index.html`, which is single-company /
-single-browser (`localStorage`) by design. Porting those modules onto this
-API (adding `payroll_runs`, `advances`, `settlements`, `eos_records` tables
-and matching routes/UI, all company-scoped) is the natural next phase and
-follows the same pattern established here.
+This backend now covers company/user/role management, employees,
+contractors, branches, payroll runs, advances/settlements, and end-of-service
+gratuity — all company-scoped with real server-side permission checks.
+
+Still only in `../index.html` (single-company, `localStorage`-based):
+printable salary slips / reports, the org chart view, and the KPI dashboard.
+These are presentation layers over data this API already exposes, so they
+can be rebuilt as views in `public/index.html` (or a proper frontend)
+without any further schema changes — same pattern, just render instead of
+mutate.
 
 ## Deployment
 

@@ -9,6 +9,10 @@ const companiesRoutes = require('./routes/companies');
 const employeesRoutes = require('./routes/employees');
 const contractorsRoutes = require('./routes/contractors');
 const branchesRoutes = require('./routes/branches');
+const payrollRoutes = require('./routes/payroll');
+const advancesRoutes = require('./routes/advances');
+const settlementsRoutes = require('./routes/settlements');
+const eosRoutes = require('./routes/eos');
 
 const app = express();
 app.use(cors());
@@ -21,6 +25,10 @@ app.use('/api/companies', companiesRoutes);
 app.use('/api/companies/:companyId/employees', employeesRoutes);
 app.use('/api/companies/:companyId/contractors', contractorsRoutes);
 app.use('/api/companies/:companyId/branches', branchesRoutes);
+app.use('/api/companies/:companyId/payroll-runs', payrollRoutes);
+app.use('/api/companies/:companyId/advances', advancesRoutes);
+app.use('/api/companies/:companyId/settlements', settlementsRoutes);
+app.use('/api/companies/:companyId/eos', eosRoutes);
 
 app.use(express.static(path.join(__dirname, '..', 'public')));
 

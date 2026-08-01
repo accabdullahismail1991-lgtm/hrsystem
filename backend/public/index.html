@@ -97,6 +97,9 @@ table.dtbl tr:hover td{background:#f5f8ff;}
     <div class="nav-item active" data-page="employees" onclick="showPage('employees')">👥 <span>الموظفون</span></div>
     <div class="nav-item" data-page="contractors" onclick="showPage('contractors')">🧰 <span>العمالة الخارجية / المقاولين</span></div>
     <div class="nav-item" data-page="branches" onclick="showPage('branches')">🏬 <span>الفروع</span></div>
+    <div class="nav-item" data-page="payroll" onclick="showPage('payroll')">💰 <span>مسيرات الرواتب</span></div>
+    <div class="nav-item" data-page="advances" onclick="showPage('advances')">💳 <span>السلف والتسويات</span></div>
+    <div class="nav-item" data-page="eos" onclick="showPage('eos')">📜 <span>مكافأة نهاية الخدمة</span></div>
     <div class="nav-item" data-page="users" onclick="showPage('users')">🔑 <span>المستخدمون والصلاحيات</span></div>
     <div class="nav-bottom">
       <button class="btn btn-outline btn-sm" style="width:100%;color:#fff;border-color:rgba(255,255,255,.3);" onclick="logout()">تسجيل الخروج</button>
@@ -114,6 +117,7 @@ table.dtbl tr:hover td{background:#f5f8ff;}
           <div class="fg"><label>الرقم الوظيفي</label><input id="e_empno"></div>
           <div class="fg"><label>الأساسي</label><input id="e_basic" type="number"></div>
           <div class="fg"><label>السكن</label><input id="e_housing" type="number"></div>
+          <div class="fg"><label>تاريخ التعيين (لازم لحساب مكافأة نهاية الخدمة)</label><input id="e_hire" type="date"></div>
           <div class="fg"><label>&nbsp;</label><button class="btn btn-navy" onclick="createEmployee()">+ إضافة موظف</button></div>
         </div>
       </div>
@@ -147,6 +151,56 @@ table.dtbl tr:hover td{background:#f5f8ff;}
         </div>
       </div>
       <div class="section-card"><div class="tbl-wrap"><table class="dtbl" id="brTable"></table></div></div>
+    </div>
+
+    <div id="page-payroll" class="page-content hide">
+      <div class="section-card">
+        <div class="perm-note" id="prPermNote"></div>
+        <div class="form-grid" id="prForm">
+          <div class="fg"><label>الشهر (١-١٢)*</label><input id="pr_month" type="number" min="1" max="12"></div>
+          <div class="fg"><label>السنة الميلادية*</label><input id="pr_yearG" type="number"></div>
+          <div class="fg"><label>السنة الهجرية</label><input id="pr_yearH"></div>
+          <div class="fg"><label>أيام العمل</label><input id="pr_workDays" type="number" value="30"></div>
+          <div class="fg"><label>&nbsp;</label><button class="btn btn-navy" onclick="createPayrollRun()">+ إنشاء مسيرة جديدة</button></div>
+        </div>
+      </div>
+      <div class="section-card">
+        <div class="form-grid" style="margin-bottom:0;">
+          <div class="fg"><label>اختر مسيرة</label><select id="pr_runSelect" onchange="loadPayrollRun(this.value)"></select></div>
+          <div class="fg" id="prGenerateWrap" style="display:none;"><label>&nbsp;</label><button class="btn btn-outline" onclick="generatePayrollLines()">↻ توليد من الموظفين النشطين</button></div>
+        </div>
+      </div>
+      <div class="section-card"><div class="tbl-wrap"><table class="dtbl" id="prTable"></table></div></div>
+    </div>
+
+    <div id="page-advances" class="page-content hide">
+      <div class="section-card">
+        <div class="perm-note" id="advPermNote"></div>
+        <div class="form-grid" id="advForm">
+          <div class="fg"><label>الموظف*</label><select id="adv_employeeId"></select></div>
+          <div class="fg"><label>المبلغ*</label><input id="adv_amount" type="number"></div>
+          <div class="fg"><label>القسط الشهري</label><input id="adv_monthly" type="number"></div>
+          <div class="fg"><label>التاريخ</label><input id="adv_date" type="date"></div>
+          <div class="fg"><label>&nbsp;</label><button class="btn btn-navy" onclick="createAdvance()">+ إضافة سلفة</button></div>
+        </div>
+      </div>
+      <div class="section-card"><h3 style="font-size:12.5px;color:var(--navy2);margin-bottom:10px;">السلف</h3><div class="tbl-wrap"><table class="dtbl" id="advTable"></table></div></div>
+      <div class="section-card"><h3 style="font-size:12.5px;color:var(--navy2);margin-bottom:10px;">التسويات</h3><div class="tbl-wrap"><table class="dtbl" id="setlTable"></table></div></div>
+    </div>
+
+    <div id="page-eos" class="page-content hide">
+      <div class="section-card">
+        <div class="perm-note" id="eosPermNote"></div>
+        <div class="form-grid" id="eosForm">
+          <div class="fg"><label>الموظف*</label><select id="eos_employeeId"></select></div>
+          <div class="fg"><label>تاريخ انتهاء الخدمة*</label><input id="eos_endDate" type="date"></div>
+          <div class="fg"><label>السبب*</label>
+            <select id="eos_reason"><option value="terminated">إنهاء خدمة / Termination</option><option value="resigned">استقالة / Resignation</option></select>
+          </div>
+          <div class="fg"><label>&nbsp;</label><button class="btn btn-navy" onclick="createEos()">+ احتساب المكافأة</button></div>
+        </div>
+      </div>
+      <div class="section-card"><div class="tbl-wrap"><table class="dtbl" id="eosTable"></table></div></div>
     </div>
 
     <div id="page-users" class="page-content hide">
@@ -275,7 +329,7 @@ function roleLabel(r){
   return { owner:'مالك', admin:'مدير', hr:'موارد بشرية', finance:'مالية', viewer:'مشاهدة فقط' }[r] || r;
 }
 
-const PAGE_TITLES = { employees:'الموظفون', contractors:'العمالة الخارجية / المقاولين', branches:'الفروع', users:'المستخدمون والصلاحيات' };
+const PAGE_TITLES = { employees:'الموظفون', contractors:'العمالة الخارجية / المقاولين', branches:'الفروع', payroll:'مسيرات الرواتب', advances:'السلف والتسويات', eos:'مكافأة نهاية الخدمة', users:'المستخدمون والصلاحيات' };
 
 function showPage(page){
   document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.page === page));
@@ -285,6 +339,9 @@ function showPage(page){
   if (page === 'employees') loadEmployees();
   if (page === 'contractors') loadContractors();
   if (page === 'branches') loadBranches();
+  if (page === 'payroll') loadPayrollRuns();
+  if (page === 'advances') loadAdvancesPage();
+  if (page === 'eos') loadEosPage();
   if (page === 'users') loadUsers();
 }
 
@@ -293,6 +350,7 @@ function canManage(action){
     manageEmployees: ['owner','admin','hr'],
     manageContractors: ['owner','admin','hr'],
     manageBranches: ['owner','admin'],
+    managePayroll: ['owner','admin','hr','finance'],
     manageUsers: ['owner'],
   }[action] || [];
   return allowed.includes(activeRole);
@@ -325,10 +383,11 @@ async function createEmployee(){
       empno: document.getElementById('e_empno').value.trim() || undefined,
       basic: Number(document.getElementById('e_basic').value) || 0,
       housing: Number(document.getElementById('e_housing').value) || 0,
+      hire: document.getElementById('e_hire').value || undefined,
     };
     if (!body.namear) return toast('الاسم مطلوب', true);
     await api(`/companies/${activeCompanyId}/employees`, { method:'POST', body: JSON.stringify(body) });
-    ['e_namear','e_dept','e_empno','e_basic','e_housing'].forEach(id => document.getElementById(id).value = '');
+    ['e_namear','e_dept','e_empno','e_basic','e_housing','e_hire'].forEach(id => document.getElementById(id).value = '');
     toast('تمت إضافة الموظف'); loadEmployees();
   }catch(e){ toast(e.message, true); }
 }
@@ -437,6 +496,202 @@ async function addUser(){
 }
 async function removeUser(id){
   try{ await api(`/companies/${activeCompanyId}/users/${id}`, { method:'DELETE' }); loadUsers(); }
+  catch(e){ toast(e.message, true); }
+}
+
+// --- Payroll ---
+let currentPayrollRun = null;
+async function loadPayrollRuns(){
+  const canEdit = canManage('managePayroll');
+  document.getElementById('prForm').style.display = canEdit ? '' : 'none';
+  document.getElementById('prGenerateWrap').style.display = canEdit ? '' : 'none';
+  document.getElementById('prPermNote').textContent = canEdit ? '' : 'صلاحيتك الحالية للمشاهدة فقط في هذه الشركة.';
+  try{
+    const runs = await api(`/companies/${activeCompanyId}/payroll-runs`);
+    const sel = document.getElementById('pr_runSelect');
+    sel.innerHTML = '<option value="">— اختر —</option>' + runs.map(r => `<option value="${r.id}">${r.month}/${r.yearG} — ${esc(r.status)}</option>`).join('');
+    if (runs.length){ sel.value = String(runs[0].id); await loadPayrollRun(runs[0].id); }
+    else { document.getElementById('prTable').innerHTML = ''; currentPayrollRun = null; }
+  }catch(e){ toast(e.message, true); }
+}
+async function createPayrollRun(){
+  try{
+    const body = {
+      month: Number(document.getElementById('pr_month').value),
+      yearG: Number(document.getElementById('pr_yearG').value),
+      yearH: document.getElementById('pr_yearH').value.trim() || undefined,
+      workDays: Number(document.getElementById('pr_workDays').value) || 30,
+    };
+    if (!body.month || !body.yearG) return toast('الشهر والسنة مطلوبان', true);
+    await api(`/companies/${activeCompanyId}/payroll-runs`, { method:'POST', body: JSON.stringify(body) });
+    toast('تم إنشاء المسيرة'); loadPayrollRuns();
+  }catch(e){ toast(e.message, true); }
+}
+async function loadPayrollRun(id){
+  if (!id){ currentPayrollRun = null; document.getElementById('prTable').innerHTML = ''; return; }
+  try{
+    currentPayrollRun = await api(`/companies/${activeCompanyId}/payroll-runs/${id}`);
+    renderPayrollTable();
+  }catch(e){ toast(e.message, true); }
+}
+async function generatePayrollLines(){
+  if (!currentPayrollRun) return toast('اختر مسيرة أولاً', true);
+  try{
+    await api(`/companies/${activeCompanyId}/payroll-runs/${currentPayrollRun.id}/generate`, { method:'POST' });
+    toast('تم التوليد'); loadPayrollRun(currentPayrollRun.id);
+  }catch(e){ toast(e.message, true); }
+}
+function renderPayrollTable(){
+  const canEdit = canManage('managePayroll');
+  const r = currentPayrollRun;
+  const del = canEdit ? '<th>حذف</th>' : '';
+  let html = `<thead><tr><th>الاسم</th><th>الأساسي</th><th>السكن</th><th>أيام الغياب</th><th>إضافي</th><th>حوافز</th><th>خصم سلفة</th><th>خصومات أخرى</th><th>إجمالي</th><th>صافي</th>${del}</tr></thead><tbody>`;
+  let totalNet = 0, totalGross = 0;
+  (r.lines||[]).forEach(l => {
+    totalNet += l.netPay; totalGross += l.grossPay;
+    const editable = canEdit ? (field, val) => `<input type="number" value="${val}" style="width:65px;" onchange="updatePayrollLine(${l.id}, '${field}', this.value)">` : (field, val) => esc(val);
+    html += `<tr><td style="text-align:right;">${esc(l.namear)}</td><td>${esc(l.basic)}</td><td>${esc(l.housing)}</td>
+      <td>${editable('absentDays', l.absentDays)}</td>
+      <td>${editable('overtime', l.overtime)}</td>
+      <td>${editable('bonus', l.bonus)}</td>
+      <td>${editable('advanceDeduction', l.advanceDeduction)}</td>
+      <td>${editable('otherDeduction', l.otherDeduction)}</td>
+      <td style="font-weight:700;">${esc(l.grossPay)}</td>
+      <td style="font-weight:700;color:var(--green);">${esc(l.netPay)}</td>`;
+    if (canEdit) html += `<td><button class="btn btn-red btn-sm" onclick="deletePayrollLine(${l.id})">🗑</button></td>`;
+    html += `</tr>`;
+  });
+  html += `<tr class="tot-row"><td colspan="8" style="text-align:left;font-weight:700;">الإجمالي</td><td style="font-weight:700;">${totalGross.toLocaleString()}</td><td style="font-weight:700;color:var(--green);">${totalNet.toLocaleString()}</td>${canEdit?'<td></td>':''}</tr>`;
+  document.getElementById('prTable').innerHTML = html + '</tbody>';
+}
+async function updatePayrollLine(lineId, field, value){
+  try{
+    await api(`/companies/${activeCompanyId}/payroll-runs/${currentPayrollRun.id}/lines/${lineId}`, { method:'PATCH', body: JSON.stringify({ [field]: Number(value) || 0 }) });
+    await loadPayrollRun(currentPayrollRun.id);
+  }catch(e){ toast(e.message, true); }
+}
+async function deletePayrollLine(lineId){
+  try{ await api(`/companies/${activeCompanyId}/payroll-runs/${currentPayrollRun.id}/lines/${lineId}`, { method:'DELETE' }); loadPayrollRun(currentPayrollRun.id); }
+  catch(e){ toast(e.message, true); }
+}
+
+// --- Advances & Settlements ---
+async function populateEmployeeSelect(selectId){
+  const sel = document.getElementById(selectId);
+  try{
+    const rows = await api(`/companies/${activeCompanyId}/employees`);
+    sel.innerHTML = rows.map(e => `<option value="${e.id}">${esc(e.namear)}${e.empno?' ('+esc(e.empno)+')':''}</option>`).join('');
+  }catch(e){ toast(e.message, true); }
+}
+async function loadAdvancesPage(){
+  const canEdit = canManage('managePayroll');
+  document.getElementById('advForm').style.display = canEdit ? '' : 'none';
+  document.getElementById('advPermNote').textContent = canEdit ? '' : 'صلاحيتك الحالية للمشاهدة فقط في هذه الشركة.';
+  if (canEdit) populateEmployeeSelect('adv_employeeId');
+  await loadAdvances(); await loadSettlements();
+}
+function statusLabel(s){ return { pending:'قيد السداد', partial:'جزئي', settled:'مُسوَّاة' }[s] || s; }
+async function loadAdvances(){
+  const canEdit = canManage('managePayroll');
+  try{
+    const rows = await api(`/companies/${activeCompanyId}/advances`);
+    const del = canEdit ? '<th></th>' : '';
+    let html = `<thead><tr><th>الموظف</th><th>المبلغ</th><th>المسدد</th><th>المتبقي</th><th>الحالة</th>${canEdit?'<th>تسجيل سداد</th>':''}${del}</tr></thead><tbody>`;
+    rows.forEach(a => {
+      html += `<tr><td style="text-align:right;">${esc(a.namear)}</td><td>${esc(a.amount)}</td><td style="color:var(--green);">${esc(a.paid)}</td><td style="color:var(--red);">${esc(a.remain)}</td><td><span class="badge">${statusLabel(a.status)}</span></td>`;
+      if (canEdit){
+        html += a.remain > 0 ? `<td><button class="btn btn-outline btn-sm" onclick="recordSettlement(${a.id}, ${a.remain})">💰 سداد</button></td>` : '<td>-</td>';
+        html += `<td><button class="btn btn-red btn-sm" onclick="deleteAdvance(${a.id})">🗑</button></td>`;
+      }
+      html += `</tr>`;
+    });
+    document.getElementById('advTable').innerHTML = html + '</tbody>';
+  }catch(e){ toast(e.message, true); }
+}
+async function createAdvance(){
+  try{
+    const body = {
+      employeeId: Number(document.getElementById('adv_employeeId').value) || undefined,
+      amount: Number(document.getElementById('adv_amount').value) || 0,
+      monthly: Number(document.getElementById('adv_monthly').value) || undefined,
+      date: document.getElementById('adv_date').value || undefined,
+    };
+    if (!body.employeeId || !body.amount) return toast('الموظف والمبلغ مطلوبان', true);
+    await api(`/companies/${activeCompanyId}/advances`, { method:'POST', body: JSON.stringify(body) });
+    ['adv_amount','adv_monthly','adv_date'].forEach(id => document.getElementById(id).value = '');
+    toast('تمت إضافة السلفة'); loadAdvances();
+  }catch(e){ toast(e.message, true); }
+}
+async function deleteAdvance(id){
+  try{ await api(`/companies/${activeCompanyId}/advances/${id}`, { method:'DELETE' }); loadAdvances(); loadSettlements(); }
+  catch(e){ toast(e.message, true); }
+}
+async function recordSettlement(advanceId, remain){
+  const amountStr = prompt(`مبلغ السداد (المتبقي: ${remain})`, String(remain));
+  if (!amountStr) return;
+  const amount = Number(amountStr);
+  if (!amount || amount <= 0) return toast('مبلغ غير صالح', true);
+  try{
+    await api(`/companies/${activeCompanyId}/advances/${advanceId}/settlements`, { method:'POST', body: JSON.stringify({ amount, date: new Date().toISOString().slice(0,10) }) });
+    toast('تم تسجيل السداد'); loadAdvances(); loadSettlements();
+  }catch(e){ toast(e.message, true); }
+}
+async function loadSettlements(){
+  const canEdit = canManage('managePayroll');
+  try{
+    const rows = await api(`/companies/${activeCompanyId}/settlements`);
+    const del = canEdit ? '<th>حذف</th>' : '';
+    let html = `<thead><tr><th>التاريخ</th><th>الموظف</th><th>المبلغ</th><th>الشهر</th>${del}</tr></thead><tbody>`;
+    rows.forEach(s => {
+      html += `<tr><td>${esc(s.date||'-')}</td><td style="text-align:right;">${esc(s.namear)}</td><td>${esc(s.amount)}</td><td>${esc(s.month||'-')}</td>`;
+      if (canEdit) html += `<td><button class="btn btn-red btn-sm" onclick="deleteSettlement(${s.id})">🗑</button></td>`;
+      html += `</tr>`;
+    });
+    document.getElementById('setlTable').innerHTML = html + '</tbody>';
+  }catch(e){ toast(e.message, true); }
+}
+async function deleteSettlement(id){
+  try{ await api(`/companies/${activeCompanyId}/settlements/${id}`, { method:'DELETE' }); loadAdvances(); loadSettlements(); }
+  catch(e){ toast(e.message, true); }
+}
+
+// --- End of Service Gratuity ---
+async function loadEosPage(){
+  const canEdit = canManage('managePayroll');
+  document.getElementById('eosForm').style.display = canEdit ? '' : 'none';
+  document.getElementById('eosPermNote').textContent = canEdit ? 'الحساب يتم بالسيرفر حسب نظام العمل السعودي (المادة ٨٤/٨٧) اعتمادًا على تاريخ التعيين الفعلي المسجل للموظف.' : 'صلاحيتك الحالية للمشاهدة فقط في هذه الشركة.';
+  if (canEdit) populateEmployeeSelect('eos_employeeId');
+  await loadEos();
+}
+async function loadEos(){
+  const canEdit = canManage('managePayroll');
+  try{
+    const rows = await api(`/companies/${activeCompanyId}/eos`);
+    let html = `<thead><tr><th>الموظف</th><th>السبب</th><th>سنوات الخدمة</th><th>المكافأة</th><th>الصافي</th><th>الحالة</th>${canEdit?'<th>إجراء</th>':''}</tr></thead><tbody>`;
+    rows.forEach(r => {
+      const reasonLabel = r.reason === 'terminated' ? 'إنهاء خدمة' : 'استقالة';
+      const nextStatus = { Pending:'Approved', Approved:'Paid' }[r.status];
+      html += `<tr><td style="text-align:right;">${esc(r.namear)}</td><td>${esc(reasonLabel)}</td><td>${esc(r.hire||'-')} → ${esc(r.end||'-')}</td><td style="font-weight:700;">${esc(r.gratuity)}</td><td style="font-weight:700;color:var(--green);">${esc(r.netEos)}</td><td><span class="badge">${esc(r.status)}</span></td>`;
+      if (canEdit) html += `<td>${nextStatus ? `<button class="btn btn-outline btn-sm" onclick="advanceEosStatus(${r.id}, '${nextStatus}')">→ ${esc(nextStatus)}</button>` : '-'}</td>`;
+      html += `</tr>`;
+    });
+    document.getElementById('eosTable').innerHTML = html + '</tbody>';
+  }catch(e){ toast(e.message, true); }
+}
+async function createEos(){
+  try{
+    const body = {
+      employeeId: Number(document.getElementById('eos_employeeId').value) || undefined,
+      endDate: document.getElementById('eos_endDate').value,
+      reason: document.getElementById('eos_reason').value,
+    };
+    if (!body.employeeId || !body.endDate) return toast('الموظف وتاريخ الانتهاء مطلوبان', true);
+    await api(`/companies/${activeCompanyId}/eos`, { method:'POST', body: JSON.stringify(body) });
+    toast('تم احتساب المكافأة'); loadEos();
+  }catch(e){ toast(e.message, true); }
+}
+async function advanceEosStatus(id, status){
+  try{ await api(`/companies/${activeCompanyId}/eos/${id}`, { method:'PATCH', body: JSON.stringify({ status }) }); loadEos(); }
   catch(e){ toast(e.message, true); }
 }
 
