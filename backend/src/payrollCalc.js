@@ -33,7 +33,7 @@ function calcPayrollLine(line, workDays) {
   const otherEr = Number(line.otherEr) || 0;
   const employerCost = grossPay + gosiEr + otherEr;
 
-  return { absent, present, absenceDeduction, grossPay, totalDeductions, netPay, employerCost };
+  return { absent, present, absenceDeduction, dueSalaryBase, grossPay, totalDeductions, netPay, employerCost };
 }
 
 function calcServiceDuration(hireDate, endDate) {

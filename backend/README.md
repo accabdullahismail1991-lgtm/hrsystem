@@ -183,6 +183,17 @@ disability) instead of just two; the calculation logic already handled
 all six identically to the original (Art. 84 for resignation, Art. 87
 for everything else) — only the UI was missing the extra options.
 
+The payroll table, print summary, and Excel export now show every column
+the original working set had per employee: present/absent days, basic/
+housing/transport/other, due salary (post-absence, pre-overtime), gross,
+advance/other deductions, total deductions, net pay, payment method, and
+notes — not just the calculated totals. A "🔄 تحديث بيانات الموظفين /
+Refresh Employee Data" button on the Payroll page backfills empno/idno/
+department/cost-center on an existing run's lines from the current
+employee records (for runs generated before those fields existed, or
+after editing an employee's registry details) without touching any
+payroll-specific numbers already entered for that run.
+
 Still only in `../index.html` (single-company, `localStorage`-based):
 backup/restore.
 

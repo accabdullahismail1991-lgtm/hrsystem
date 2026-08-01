@@ -42,6 +42,7 @@ const lineToApi = (l) => ({
   payMethod: l.pay_method,
   note: l.note,
   absenceDeduction: Number(l.absence_deduction),
+  dueSalary: Number(l.due_salary),
   grossPay: Number(l.gross_pay),
   totalDeductions: Number(l.total_deductions),
   netPay: Number(l.net_pay),
@@ -96,21 +97,36 @@ router.get('/:runId/export/xlsx', requireCompanyRole('view'), async (req, res) =
   const workbook = new ExcelJS.Workbook();
   const sheet = workbook.addWorksheet('Payroll Summary');
   sheet.columns = [
+    { key: 'empno', header: 'الرقم الوظيفي / Emp No.', width: 14 },
     { key: 'namear', header: 'الاسم / Name', width: 24 },
     { key: 'dept', header: 'القسم / Dept', width: 18 },
+    { key: 'cc', header: 'الفرع/مركز التكلفة / Cost Center', width: 18 },
+    { key: 'present', header: 'حضور / Present', width: 10 },
+    { key: 'absent', header: 'غياب / Absent', width: 10 },
     { key: 'basic', header: 'الأساسي / Basic', width: 12 },
     { key: 'housing', header: 'السكن / Housing', width: 12 },
+    { key: 'transport', header: 'النقل / Transport', width: 12 },
+    { key: 'other', header: 'أخرى / Other', width: 12 },
+    { key: 'dueSalary', header: 'المستحق / Due Salary', width: 14 },
     { key: 'overtime', header: 'إضافي / Overtime', width: 12 },
     { key: 'grossPay', header: 'إجمالي / Gross', width: 14 },
-    { key: 'totalDeductions', header: 'الخصومات / Deductions', width: 14 },
-    { key: 'netPay', header: 'الصافي / Net', width: 14 },
+    { key: 'advanceDeduction', header: 'السلف / Advance', width: 12 },
+    { key: 'otherDeduction', header: 'خصومات أخرى / Other Ded.', width: 14 },
+    { key: 'totalDeductions', header: 'إجمالي الخصومات / Total Ded.', width: 16 },
+    { key: 'netPay', header: 'الصافي / Net Pay', width: 14 },
+    { key: 'payMethod', header: 'طريقة الدفع / Payment', width: 12 },
+    { key: 'note', header: 'ملاحظات / Notes', width: 20 },
   ];
   sheet.getRow(1).font = { bold: true };
   lines.forEach((l) => {
     sheet.addRow({
-      namear: l.namear_snapshot, dept: l.dept_snapshot,
-      basic: Number(l.basic), housing: Number(l.housing), overtime: Number(l.overtime),
-      grossPay: Number(l.gross_pay), totalDeductions: Number(l.total_deductions), netPay: Number(l.net_pay),
+      empno: l.empno_snapshot, namear: l.namear_snapshot, dept: l.dept_snapshot, cc: l.cc_snapshot,
+      present: run.work_days - l.absent_days, absent: l.absent_days,
+      basic: Number(l.basic), housing: Number(l.housing), transport: Number(l.transport), other: Number(l.other),
+      dueSalary: Number(l.due_salary), overtime: Number(l.overtime),
+      grossPay: Number(l.gross_pay), advanceDeduction: Number(l.advance_deduction), otherDeduction: Number(l.other_deduction),
+      totalDeductions: Number(l.total_deductions), netPay: Number(l.net_pay),
+      payMethod: l.pay_method, note: l.note,
     });
   });
 
@@ -145,6 +161,7 @@ router.patch('/:runId', requireCompanyRole('managePayroll'), async (req, res) =>
       );
       await db('payroll_lines').where({ id: l.id }).update({
         absence_deduction: calc.absenceDeduction,
+        due_salary: calc.dueSalaryBase,
         gross_pay: calc.grossPay,
         total_deductions: calc.totalDeductions,
         net_pay: calc.netPay,
@@ -204,6 +221,7 @@ router.post('/:runId/generate', requireCompanyRole('managePayroll'), async (req,
       other_er: e.other_er,
       pay_method: e.pay || 'Transfer',
       absence_deduction: calc.absenceDeduction,
+      due_salary: calc.dueSalaryBase,
       gross_pay: calc.grossPay,
       total_deductions: calc.totalDeductions,
       net_pay: calc.netPay,
@@ -212,6 +230,31 @@ router.post('/:runId/generate', requireCompanyRole('managePayroll'), async (req,
   }
   const lines = await db('payroll_lines').where({ payroll_run_id: run.id }).orderBy('namear_snapshot');
   res.json(lines.map(lineToApi));
+});
+
+// Backfills employee-identity snapshot fields (name/dept/cost-center/
+// empno/idno) on a run's existing lines from the current employee
+// records — for runs generated before those fields existed, or after an
+// employee's registry details changed. Never touches the payroll-specific
+// numbers (absence/overtime/deductions) a user may have already edited.
+router.post('/:runId/refresh-employee-data', requireCompanyRole('managePayroll'), async (req, res) => {
+  const run = await assertRun(req.companyId, req.params.runId);
+  const lines = await db('payroll_lines').where({ payroll_run_id: run.id }).whereNotNull('employee_id');
+  let updated = 0;
+  for (const l of lines) {
+    const e = await db('employees').where({ id: l.employee_id, company_id: req.companyId }).first();
+    if (!e) continue;
+    await db('payroll_lines').where({ id: l.id }).update({
+      namear_snapshot: e.namear,
+      dept_snapshot: e.dept,
+      cc_snapshot: e.cc,
+      empno_snapshot: e.empno,
+      idno_snapshot: e.idno,
+      updated_at: new Date(),
+    });
+    updated++;
+  }
+  res.json({ updated });
 });
 
 // --- Lines ---
@@ -227,6 +270,7 @@ router.patch('/:runId/lines/:lineId', requireCompanyRole('managePayroll'), async
     run.work_days
   );
   patch.absence_deduction = calc.absenceDeduction;
+  patch.due_salary = calc.dueSalaryBase;
   patch.gross_pay = calc.grossPay;
   patch.total_deductions = calc.totalDeductions;
   patch.net_pay = calc.netPay;

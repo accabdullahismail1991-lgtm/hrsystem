@@ -311,6 +311,7 @@ table.dtbl tr:hover td{background:#f5f8ff;}
         <div class="form-grid" style="margin-bottom:0;">
           <div class="fg"><label>اختر مسيرة<span class="bl">Select Run</span></label><select id="pr_runSelect" onchange="loadPayrollRun(this.value)"></select></div>
           <div class="fg" id="prGenerateWrap" style="display:none;"><label>&nbsp;</label><button class="btn btn-outline" onclick="generatePayrollLines()">↻ توليد من الموظفين النشطين <span class="bl">Generate</span></button></div>
+          <div class="fg" id="prRefreshWrap" style="display:none;"><label>&nbsp;</label><button class="btn btn-outline" onclick="refreshPayrollEmployeeData()" title="يحدّث الرقم الوظيفي/الهوية/القسم/مركز التكلفة من بيانات الموظف الحالية دون المساس بأرقام الراتب">🔄 تحديث بيانات الموظفين <span class="bl">Refresh Employee Data</span></button></div>
           <div class="fg"><label>&nbsp;</label><button class="btn btn-gold" onclick="printPayrollSummary()">📄 طباعة الملخص <span class="bl">Print Summary</span></button></div>
         </div>
       </div>
@@ -994,6 +995,7 @@ async function loadPayrollRuns(){
   const canEdit = canManage('managePayroll');
   document.getElementById('prForm').style.display = canEdit ? '' : 'none';
   document.getElementById('prGenerateWrap').style.display = canEdit ? '' : 'none';
+  document.getElementById('prRefreshWrap').style.display = canEdit ? '' : 'none';
   document.getElementById('prPermNote').textContent = canEdit ? '' : 'صلاحيتك الحالية للمشاهدة فقط في هذه الشركة.';
   try{
     const runs = await api(`/companies/${activeCompanyId}/payroll-runs`);
@@ -1055,28 +1057,62 @@ async function generatePayrollLines(){
     toast('تم التوليد'); loadPayrollRun(currentPayrollRun.id);
   }catch(e){ toast(e.message, true); }
 }
+// Backfills empno/idno/dept/cost-center on this run's lines from the
+// current employee records — for runs generated before those fields
+// existed, or after editing an employee's registry details. Does not
+// touch absence/overtime/deduction numbers already entered for this run.
+async function refreshPayrollEmployeeData(){
+  if (!currentPayrollRun) return toast('اختر مسيرة أولاً', true);
+  try{
+    const data = await api(`/companies/${activeCompanyId}/payroll-runs/${currentPayrollRun.id}/refresh-employee-data`, { method:'POST' });
+    toast(`تم تحديث بيانات ${data.updated} موظف`); loadPayrollRun(currentPayrollRun.id);
+  }catch(e){ toast(e.message, true); }
+}
 function renderPayrollTable(){
   const canEdit = canManage('managePayroll');
   const r = currentPayrollRun;
   const del = canEdit ? '<th>حذف</th>' : '';
-  let html = `<thead><tr><th>الرقم الوظيفي</th><th>الاسم</th><th>القسم</th><th>الفرع/مركز التكلفة</th><th>الأساسي</th><th>السكن</th><th>أيام الغياب</th><th>إضافي</th><th>حوافز</th><th>خصم سلفة</th><th>خصومات أخرى</th><th>إجمالي</th><th>صافي</th><th>طباعة</th>${del}</tr></thead><tbody>`;
+  let html = `<thead><tr>
+    <th>#</th><th>الرقم الوظيفي</th><th>رقم الهوية</th><th>الاسم</th><th>القسم</th><th>الفرع/مركز التكلفة</th>
+    <th>حضور</th><th>غياب</th>
+    <th>الأساسي</th><th>السكن</th><th>النقل</th><th>أخرى</th><th>المستحق</th>
+    <th>إضافي</th><th>حوافز</th><th>الإجمالي</th>
+    <th>سلفة</th><th>خصومات أخرى</th><th>إجمالي الخصومات</th><th>الصافي</th>
+    <th>الدفع</th><th>ملاحظات</th><th>طباعة</th>${del}</tr></thead><tbody>`;
   let totalNet = 0, totalGross = 0;
-  (r.lines||[]).forEach(l => {
+  (r.lines||[]).forEach((l,i) => {
     totalNet += l.netPay; totalGross += l.grossPay;
-    const editable = canEdit ? (field, val) => `<input type="number" value="${val}" style="width:65px;" onchange="updatePayrollLine(${l.id}, '${field}', this.value)">` : (field, val) => esc(val);
-    html += `<tr><td style="font-family:monospace;">${esc(l.empno||'-')}</td><td style="text-align:right;">${esc(l.namear)}</td><td>${esc(l.dept||'-')}</td><td>${esc(l.cc||'-')}</td><td>${esc(l.basic)}</td><td>${esc(l.housing)}</td>
-      <td>${editable('absentDays', l.absentDays)}</td>
+    const present = r.workDays - l.absentDays;
+    const editable = canEdit ? (field, val, w) => `<input type="number" value="${val}" style="width:${w||55}px;" onchange="updatePayrollLine(${l.id}, '${field}', this.value)">` : (field, val) => esc(val);
+    const editableNote = canEdit ? `<input type="text" value="${esc(l.note||'')}" style="width:110px;" onchange="updatePayrollLine(${l.id}, 'note', this.value)">` : esc(l.note||'-');
+    html += `<tr>
+      <td>${i+1}</td>
+      <td style="font-family:monospace;">${esc(l.empno||'-')}</td>
+      <td style="font-family:monospace;">${esc(l.idno||'-')}</td>
+      <td style="text-align:right;">${esc(l.namear)}</td>
+      <td>${esc(l.dept||'-')}</td>
+      <td>${esc(l.cc||'-')}</td>
+      <td style="color:var(--green);">${present}</td>
+      <td>${editable('absentDays', l.absentDays, 45)}</td>
+      <td>${esc(l.basic)}</td>
+      <td>${esc(l.housing)}</td>
+      <td>${esc(l.transport)}</td>
+      <td>${esc(l.other)}</td>
+      <td>${esc(l.dueSalary)}</td>
       <td>${editable('overtime', l.overtime)}</td>
       <td>${editable('bonus', l.bonus)}</td>
+      <td style="font-weight:700;">${esc(l.grossPay)}</td>
       <td>${editable('advanceDeduction', l.advanceDeduction)}</td>
       <td>${editable('otherDeduction', l.otherDeduction)}</td>
-      <td style="font-weight:700;">${esc(l.grossPay)}</td>
+      <td>${esc(l.totalDeductions)}</td>
       <td style="font-weight:700;color:var(--green);">${esc(l.netPay)}</td>
+      <td>${esc(l.payMethod)}</td>
+      <td>${editableNote}</td>
       <td><button class="btn btn-outline btn-sm" onclick="printPayrollSlip(${l.id})">🖨️</button></td>`;
     if (canEdit) html += `<td><button class="btn btn-red btn-sm" onclick="deletePayrollLine(${l.id})">🗑</button></td>`;
     html += `</tr>`;
   });
-  html += `<tr class="tot-row"><td colspan="10" style="text-align:left;font-weight:700;">الإجمالي / Total</td><td style="font-weight:700;">${totalGross.toLocaleString()}</td><td style="font-weight:700;color:var(--green);">${totalNet.toLocaleString()}</td><td></td>${canEdit?'<td></td>':''}</tr>`;
+  html += `<tr class="tot-row"><td colspan="15" style="text-align:left;font-weight:700;">الإجمالي / Total</td><td style="font-weight:700;">${totalGross.toLocaleString()}</td><td colspan="2"></td><td style="font-weight:700;color:var(--green);">${totalNet.toLocaleString()}</td><td colspan="2"></td><td></td>${canEdit?'<td></td>':''}</tr>`;
   document.getElementById('prTable').innerHTML = html + '</tbody>';
 }
 // Same markup/classes as the original app's buildSlipHtml, so the printed
@@ -1229,10 +1265,15 @@ async function printPayrollSummary(){
     let totGross = 0, totDed = 0, totNet = 0;
     const rows = r.lines.map((l,i) => {
       totGross += l.grossPay; totDed += l.totalDeductions; totNet += l.netPay;
+      const present = r.workDays - l.absentDays;
       return `<tr><td>${i+1}</td><td style="font-family:monospace;">${esc(l.empno||'-')}</td><td style="text-align:right;">${esc(l.namear)}</td><td>${esc(l.dept||'-')}</td><td>${esc(l.cc||'-')}</td>
-        <td>${n(l.basic)}</td><td>${n(l.housing)}</td><td>${n(l.overtime)}</td>
-        <td style="font-weight:700;">${n(l.grossPay)}</td><td>${n(l.totalDeductions)}</td>
-        <td style="font-weight:700;color:#1a6b3a;">${n(l.netPay)}</td></tr>`;
+        <td>${present}</td><td>${l.absentDays}</td>
+        <td>${n(l.basic)}</td><td>${n(l.housing)}</td><td>${n(l.transport)}</td><td>${n(l.other)}</td>
+        <td>${n(l.dueSalary)}</td><td>${n(l.overtime)}</td>
+        <td style="font-weight:700;">${n(l.grossPay)}</td>
+        <td>${n(l.advanceDeduction)}</td><td>${n(l.otherDeduction)}</td><td>${n(l.totalDeductions)}</td>
+        <td style="font-weight:700;color:#1a6b3a;">${n(l.netPay)}</td>
+        <td>${esc(l.payMethod)}</td><td style="font-size:8pt;">${esc(l.note||'-')}</td></tr>`;
     }).join('');
     const w = window.open('', '_blank');
     w.document.write(`<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8">
@@ -1261,11 +1302,15 @@ async function printPayrollSummary(){
     ${company.printShowLogo!==false && company.logoDataUrl?`<div style="text-align:center;"><img src="${company.logoDataUrl}" style="max-height:44px;margin-bottom:6px;"></div>`:''}
     <h2>${esc(company.nameAr)} <span class="bl">${esc(company.nameEn)}</span></h2>
     <div class="sub">ملخص مسيرة الرواتب <span class="bl">Payroll Summary</span> — ${r.month}/${r.yearG} ${r.yearH?('هـ'+esc(r.yearH)):''} — عدد الموظفين <span class="bl">Employees</span>: ${r.lines.length}</div>
-    <table><thead><tr><th>#</th><th>الرقم الوظيفي<span class="bl">Emp No.</span></th><th>الاسم<span class="bl">Name</span></th><th>القسم<span class="bl">Dept</span></th><th>الفرع/مركز التكلفة<span class="bl">Branch/CC</span></th>
-      <th>الأساسي<span class="bl">Basic</span></th><th>السكن<span class="bl">Housing</span></th><th>إضافي<span class="bl">OT</span></th>
-      <th>إجمالي<span class="bl">Gross</span></th><th>الخصومات<span class="bl">Deductions</span></th><th>الصافي<span class="bl">Net</span></th></tr></thead>
+    <table style="font-size:8pt;"><thead><tr><th>#</th><th>الرقم الوظيفي<span class="bl">Emp No.</span></th><th>الاسم<span class="bl">Name</span></th><th>القسم<span class="bl">Dept</span></th><th>الفرع/مركز التكلفة<span class="bl">Branch/CC</span></th>
+      <th>حضور<span class="bl">Present</span></th><th>غياب<span class="bl">Absent</span></th>
+      <th>الأساسي<span class="bl">Basic</span></th><th>السكن<span class="bl">Housing</span></th><th>النقل<span class="bl">Transport</span></th><th>أخرى<span class="bl">Other</span></th>
+      <th>المستحق<span class="bl">Due Salary</span></th><th>إضافي<span class="bl">OT</span></th>
+      <th>إجمالي<span class="bl">Gross</span></th>
+      <th>سلفة<span class="bl">Advance</span></th><th>خصومات أخرى<span class="bl">Other Ded.</span></th><th>إجمالي الخصومات<span class="bl">Total Ded.</span></th>
+      <th>الصافي<span class="bl">Net</span></th><th>الدفع<span class="bl">Payment</span></th><th>ملاحظات<span class="bl">Notes</span></th></tr></thead>
     <tbody>${rows}
-      <tr class="tot"><td colspan="8" style="text-align:left;">الإجمالي <span class="bl">Total</span></td><td>${n(totGross)}</td><td>${n(totDed)}</td><td>${n(totNet)}</td></tr>
+      <tr class="tot"><td colspan="12" style="text-align:left;">الإجمالي <span class="bl">Total</span></td><td>${n(totGross)}</td><td colspan="2"></td><td>${n(totDed)}</td><td>${n(totNet)}</td><td colspan="2"></td></tr>
     </tbody></table>
     <div class="sigs">
       ${(company.signatures && company.signatures.length ? company.signatures : [{titleAr:'مدير الموارد البشرية',titleEn:'HR Manager'},{titleAr:'المدير المالي',titleEn:'Finance Manager'},{titleAr:'المدير العام',titleEn:'General Manager'}])
