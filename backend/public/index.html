@@ -122,6 +122,7 @@ table.dtbl tr:hover td{background:#f5f8ff;}
     <div class="nav-item" data-page="eos" onclick="showPage('eos')">📜 <span>مكافأة نهاية الخدمة<span class="bl">End of Service</span></span></div>
     <div class="nav-item" data-page="orgchart" onclick="showPage('orgchart')">🗂️ <span>الهيكل التنظيمي<span class="bl">Org Chart</span></span></div>
     <div class="nav-item" data-page="kpi" onclick="showPage('kpi')">📊 <span>لوحة المؤشرات<span class="bl">KPI Dashboard</span></span></div>
+    <div class="nav-item" data-page="compliance" onclick="showPage('compliance')">🔐 <span>تقرير الامتثال<span class="bl">Compliance</span></span></div>
     <div class="nav-item" data-page="users" onclick="showPage('users')">🔑 <span>المستخدمون والصلاحيات<span class="bl">Users & Roles</span></span></div>
     <div class="nav-item" data-page="companySettings" onclick="showPage('companySettings')">🏢 <span>تعريف الشركة<span class="bl">Company Settings</span></span></div>
     <div class="nav-bottom">
@@ -314,6 +315,15 @@ table.dtbl tr:hover td{background:#f5f8ff;}
         </div>
       </div>
       <div class="section-card"><div class="tbl-wrap"><table class="dtbl" id="prTable"></table></div></div>
+
+      <div class="section-card">
+        <div class="form-grid" style="margin-bottom:10px;">
+          <div class="fg" style="grid-column:span 2;"><label>📁 أرشيف المسيرات <span class="bl">Payroll Archive</span></label>
+            <input id="pr_archiveSearch" placeholder="🔍 بحث بالشهر/السنة/الحالة... / Search month/year/status..." oninput="renderPayrollArchive()">
+          </div>
+        </div>
+        <div class="tbl-wrap"><table class="dtbl" id="prArchiveTable"></table></div>
+      </div>
     </div>
 
     <div id="page-advances" class="page-content hide">
@@ -353,6 +363,16 @@ table.dtbl tr:hover td{background:#f5f8ff;}
     <div id="page-kpi" class="page-content hide">
       <div class="stats-row" id="kpiCards" style="display:grid;grid-template-columns:repeat(4,1fr);gap:13px;margin-bottom:16px;"></div>
       <div class="section-card"><div id="kpiDeptChart"></div></div>
+    </div>
+
+    <div id="page-compliance" class="page-content hide">
+      <div class="section-card">
+        <div class="form-grid" style="margin-bottom:0;">
+          <div class="fg"><label>اختر مسيرة<span class="bl">Select Payroll Run</span></label><select id="cmp_runSelect" onchange="loadComplianceReport(this.value)"></select></div>
+          <div class="fg"><label>&nbsp;</label><button class="btn btn-gold" onclick="printComplianceReport()">📄 طباعة <span class="bl">Print</span></button></div>
+        </div>
+      </div>
+      <div id="complianceContent"></div>
     </div>
 
     <div id="page-users" class="page-content hide">
@@ -521,6 +541,7 @@ const PAGE_TITLES = {
   branches:'الفروع / Branches', payroll:'مسيرات الرواتب / Payroll Runs',
   advances:'السلف والتسويات / Advances & Settlements', eos:'مكافأة نهاية الخدمة / End of Service Gratuity',
   orgchart:'الهيكل التنظيمي / Organization Chart', kpi:'لوحة المؤشرات / KPI Dashboard',
+  compliance:'تقرير الامتثال / Compliance Report',
   users:'المستخدمون والصلاحيات / Users & Roles',
 };
 
@@ -536,6 +557,7 @@ function showPage(page){
   if (page === 'advances') loadAdvancesPage();
   if (page === 'orgchart') loadOrgChart();
   if (page === 'kpi') loadKpiDashboard();
+  if (page === 'compliance') loadCompliancePage();
   if (page === 'eos') loadEosPage();
   if (page === 'companySettings') loadCompanySettings();
   if (page === 'users') loadUsers();
@@ -908,6 +930,7 @@ function autoFillHijriYear(){
     if (hijriYear) document.getElementById('pr_yearH').value = hijriYear;
   }catch{ /* Islamic calendar not supported in this browser — leave manual */ }
 }
+let _payrollRunsCache = [];
 async function loadPayrollRuns(){
   const canEdit = canManage('managePayroll');
   document.getElementById('prForm').style.display = canEdit ? '' : 'none';
@@ -915,11 +938,36 @@ async function loadPayrollRuns(){
   document.getElementById('prPermNote').textContent = canEdit ? '' : 'صلاحيتك الحالية للمشاهدة فقط في هذه الشركة.';
   try{
     const runs = await api(`/companies/${activeCompanyId}/payroll-runs`);
+    _payrollRunsCache = runs;
     const sel = document.getElementById('pr_runSelect');
     sel.innerHTML = '<option value="">— اختر —</option>' + runs.map(r => `<option value="${r.id}">${r.month}/${r.yearG} — ${esc(r.status)}</option>`).join('');
     if (runs.length){ sel.value = String(runs[0].id); await loadPayrollRun(runs[0].id); }
     else { document.getElementById('prTable').innerHTML = ''; currentPayrollRun = null; }
+    renderPayrollArchive();
   }catch(e){ toast(e.message, true); }
+}
+const MONTH_NAMES_AR = ['','يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+function renderPayrollArchive(){
+  const canEdit = canManage('managePayroll');
+  const q = (document.getElementById('pr_archiveSearch').value || '').trim().toLowerCase();
+  const rows = _payrollRunsCache.filter(r => {
+    if (!q) return true;
+    return String(r.month).includes(q) || MONTH_NAMES_AR[r.month]?.includes(q) || String(r.yearG).includes(q) || (r.status||'').toLowerCase().includes(q);
+  });
+  const del = canEdit ? '<th>حذف</th>' : '';
+  let html = `<thead><tr><th>الشهر<span class="bl">Month</span></th><th>السنة<span class="bl">Year</span></th><th>الحالة<span class="bl">Status</span></th><th>عرض/طباعة<span class="bl">View/Print</span></th>${del}</tr></thead><tbody>`;
+  rows.forEach(r => {
+    html += `<tr><td>${esc(MONTH_NAMES_AR[r.month]||r.month)}</td><td>${esc(r.yearG)}</td><td><span class="badge">${esc(r.status)}</span></td>
+      <td><button class="btn btn-outline btn-sm" onclick="document.getElementById('pr_runSelect').value='${r.id}';loadPayrollRun(${r.id});window.scrollTo({top:0,behavior:'smooth'});">👁</button></td>`;
+    if (canEdit) html += `<td><button class="btn btn-red btn-sm" onclick="deletePayrollRun(${r.id})">🗑</button></td>`;
+    html += `</tr>`;
+  });
+  document.getElementById('prArchiveTable').innerHTML = html + '</tbody>';
+}
+async function deletePayrollRun(id){
+  if (!confirm('حذف هذه المسيرة نهائياً؟ / Permanently delete this payroll run?')) return;
+  try{ await api(`/companies/${activeCompanyId}/payroll-runs/${id}`, { method:'DELETE' }); loadPayrollRuns(); }
+  catch(e){ toast(e.message, true); }
 }
 async function createPayrollRun(){
   try{
@@ -1306,6 +1354,99 @@ async function loadKpiDashboard(){
           <span style="min-width:24px;text-align:left;">${count}</span>
         </div>`).join('');
   }catch(e){ toast(e.message, true); }
+}
+
+// --- Compliance Report ---
+let _complianceStats = null;
+async function loadCompliancePage(){
+  try{
+    const runs = await api(`/companies/${activeCompanyId}/payroll-runs`);
+    const sel = document.getElementById('cmp_runSelect');
+    sel.innerHTML = runs.map(r => `<option value="${r.id}">${r.month}/${r.yearG} — ${esc(r.status)}</option>`).join('');
+    if (runs.length) { sel.value = String(runs[0].id); await loadComplianceReport(runs[0].id); }
+    else document.getElementById('complianceContent').innerHTML = `<div class="section-card" style="text-align:center;color:var(--muted);">لا توجد مسيرات بعد <span class="bl">No payroll runs yet</span></div>`;
+  }catch(e){ toast(e.message, true); }
+}
+async function loadComplianceReport(runId){
+  if (!runId) return;
+  try{
+    const r = await api(`/companies/${activeCompanyId}/payroll-runs/${runId}`);
+    const lines = r.lines || [];
+    let totGross=0, totStat=0, totOther=0, totNet=0, totGosiEr=0, totOtherEr=0, totEmpCost=0, totTax=0, totGosi=0, totHealth=0;
+    const depts = {};
+    lines.forEach(l => {
+      const stat = l.gosiEmp + l.healthIns + l.incomeTax + l.unionFee;
+      const other = l.advanceDeduction + l.otherDeduction;
+      totGross += l.grossPay; totStat += stat; totOther += other; totNet += l.netPay;
+      totGosiEr += l.gosiEr; totOtherEr += l.otherEr; totEmpCost += l.employerCost;
+      totTax += l.incomeTax; totGosi += l.gosiEmp; totHealth += l.healthIns;
+      const d = l.dept || 'غير محدد / Unassigned';
+      if (!depts[d]) depts[d] = { emp:0, gross:0, net:0, ded:0, empCost:0 };
+      depts[d].emp++; depts[d].gross += l.grossPay; depts[d].net += l.netPay;
+      depts[d].ded += (stat+other); depts[d].empCost += l.employerCost;
+    });
+    const varPct = totGross > 0 ? ((totNet/totGross)*100).toFixed(1) : 0;
+    _complianceStats = { run: r, totGross, totStat, totOther, totNet, totGosiEr, totOtherEr, totEmpCost, totTax, totGosi, totHealth, varPct, depts, empCount: lines.length };
+
+    document.getElementById('complianceContent').innerHTML = `
+      <div class="section-card">
+        <div style="background:#e8f0ff;border-radius:8px;padding:11px 14px;margin-bottom:14px;display:flex;flex-wrap:wrap;gap:12px;align-items:center;font-size:11.5px;">
+          <span>المسيرة <span class="bl">Run</span>: <strong>${r.month}/${r.yearG}</strong></span>
+          <span style="background:var(--navy2);color:#fff;padding:2px 12px;border-radius:10px;font-size:11px;font-weight:700;">${esc(r.status)}</span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:11px;margin-bottom:14px;">
+          <div style="background:#e8fff0;border-radius:8px;padding:11px;border-right:4px solid var(--green);"><div style="font-size:10px;font-weight:700;color:var(--muted);">إجمالي الرواتب <span class="bl">Gross Pay</span></div><div style="font-size:17px;font-weight:800;color:var(--green);">${n(totGross)} SAR</div><div style="font-size:10px;color:var(--muted);">${lines.length} موظف</div></div>
+          <div style="background:#fdecea;border-radius:8px;padding:11px;border-right:4px solid var(--red);"><div style="font-size:10px;font-weight:700;color:var(--muted);">إجمالي الخصومات <span class="bl">Total Deductions</span></div><div style="font-size:17px;font-weight:800;color:var(--red);">${n(totStat+totOther)} SAR</div><div style="font-size:10px;color:var(--muted);">نظامية:${n(totStat)} | أخرى:${n(totOther)}</div></div>
+          <div style="background:#e8f0ff;border-radius:8px;padding:11px;border-right:4px solid var(--navy2);"><div style="font-size:10px;font-weight:700;color:var(--muted);">صافي الصرف <span class="bl">Net Pay</span></div><div style="font-size:17px;font-weight:800;color:var(--navy2);">${n(totNet)} SAR</div><div style="font-size:10px;color:var(--muted);">${varPct}% من الإجمالي</div></div>
+          <div style="background:#fff8e0;border-radius:8px;padding:11px;border-right:4px solid var(--gold);"><div style="font-size:10px;font-weight:700;color:var(--muted);">تأمينات صاحب العمل <span class="bl">Employer GOSI</span></div><div style="font-size:17px;font-weight:800;color:var(--gold);">${n(totGosiEr)} SAR</div></div>
+          <div style="background:#f0f0ff;border-radius:8px;padding:11px;border-right:4px solid #6633cc;"><div style="font-size:10px;font-weight:700;color:var(--muted);">إجمالي تكلفة التوظيف <span class="bl">Total Employment Cost</span></div><div style="font-size:17px;font-weight:800;color:#4422aa;">${n(totEmpCost)} SAR</div></div>
+          <div style="background:#fff0f5;border-radius:8px;padding:11px;border-right:4px solid #cc3366;"><div style="font-size:10px;font-weight:700;color:var(--muted);">النظامية (ضريبة+تأمينات+صحي) <span class="bl">Statutory</span></div><div style="font-size:17px;font-weight:800;color:#cc3366;">${n(totTax+totGosi+totHealth)} SAR</div></div>
+        </div>
+        <div style="background:#f8faff;border:1.5px solid var(--border);border-radius:8px;padding:12px 16px;margin-bottom:14px;">
+          <div style="font-size:11px;font-weight:700;color:var(--navy2);margin-bottom:6px;">📐 معادلة المطابقة <span class="bl">Reconciliation (IAS 19 / IFRS)</span></div>
+          <div style="font-family:monospace;font-size:11.5px;line-height:1.9;color:#333;direction:ltr;text-align:left;">
+            Gross Pay [${n(totGross)}] − Total Deductions [${n(totStat+totOther)}] = <strong style="color:var(--navy2);">Net Pay [${n(totNet)} SAR]</strong><br>
+            Total Employment Cost = Gross [${n(totGross)}] + Employer Contribs [${n(totGosiEr+totOtherEr)}] = <strong style="color:#4422aa;">[${n(totEmpCost)} SAR]</strong>
+          </div>
+        </div>
+        <div style="font-size:11px;font-weight:700;color:var(--navy2);margin-bottom:7px;">📂 التكلفة حسب القسم <span class="bl">Cost by Department</span></div>
+        <table class="dtbl"><thead><tr><th>القسم</th><th>عدد</th><th>إجمالي</th><th>صافي</th><th>تكلفة التوظيف</th></tr></thead>
+        <tbody>${Object.entries(depts).sort((a,b)=>b[1].empCost-a[1].empCost).map(([d,v]) => `<tr><td style="text-align:right;">${esc(d)}</td><td>${v.emp}</td><td>${n(v.gross)}</td><td style="color:var(--navy2);">${n(v.net)}</td><td style="color:#6633cc;font-weight:700;">${n(v.empCost)}</td></tr>`).join('')}</tbody></table>
+      </div>`;
+  }catch(e){ toast(e.message, true); }
+}
+function printComplianceReport(){
+  if (!_complianceStats) return toast('اختر مسيرة أولاً', true);
+  const s = _complianceStats;
+  const w = window.open('', '_blank');
+  w.document.write(`<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8">
+  <style>@page{size:A4;margin:12mm;}body{font-family:Arial;font-size:10pt;direction:rtl;}
+  .bl{opacity:.6;font-size:.85em;}
+  h2{color:#1a3a6b;text-align:center;margin-bottom:10px;}
+  .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px;}
+  .card{background:#f5f8ff;border-radius:8px;padding:10px;border-right:3px solid #1a3a6b;}
+  .card .lbl{font-size:8.5pt;color:#666;}.card .val{font-size:13pt;font-weight:800;color:#1a3a6b;}
+  table{width:100%;border-collapse:collapse;margin-top:10px;}th{background:#1a3a6b;color:#fff;padding:6px;}
+  td{padding:5px;border-bottom:1px solid #ddd;text-align:center;}
+  .toolbar{display:flex;justify-content:center;margin-bottom:12px;}
+  .toolbar button{padding:8px 16px;border:none;border-radius:6px;cursor:pointer;font-size:11pt;font-weight:600;background:#0f2557;color:#fff;}
+  @media print{.toolbar{display:none;}}
+  </style></head><body>
+  <div class="toolbar"><button onclick="window.print()">🖨️ طباعة / حفظ PDF <span class="bl">Print / Save as PDF</span></button></div>
+  <h2>تقرير الامتثال <span class="bl">Compliance Report</span> — ${s.run.month}/${s.run.yearG}</h2>
+  <div class="cards">
+    <div class="card"><div class="lbl">إجمالي الرواتب / Gross</div><div class="val">${n(s.totGross)} SAR</div></div>
+    <div class="card"><div class="lbl">إجمالي الخصومات / Deductions</div><div class="val">${n(s.totStat+s.totOther)} SAR</div></div>
+    <div class="card"><div class="lbl">صافي الصرف / Net</div><div class="val">${n(s.totNet)} SAR</div></div>
+    <div class="card"><div class="lbl">تأمينات صاحب العمل / Employer GOSI</div><div class="val">${n(s.totGosiEr)} SAR</div></div>
+    <div class="card"><div class="lbl">تكلفة التوظيف / Employment Cost</div><div class="val">${n(s.totEmpCost)} SAR</div></div>
+    <div class="card"><div class="lbl">النظامية / Statutory</div><div class="val">${n(s.totTax+s.totGosi+s.totHealth)} SAR</div></div>
+  </div>
+  <table><thead><tr><th>القسم / Dept</th><th>عدد / Emp</th><th>إجمالي / Gross</th><th>صافي / Net</th><th>تكلفة / Cost</th></tr></thead>
+  <tbody>${Object.entries(s.depts).map(([d,v]) => `<tr><td>${esc(d)}</td><td>${v.emp}</td><td>${n(v.gross)}</td><td>${n(v.net)}</td><td>${n(v.empCost)}</td></tr>`).join('')}</tbody></table>
+  </body></html>`);
+  w.document.close();
+  setTimeout(() => w.print(), 400);
 }
 
 // --- boot ---

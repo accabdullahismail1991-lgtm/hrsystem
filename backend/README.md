@@ -150,9 +150,15 @@ vulnerabilities (prototype pollution, ReDoS — both directly triggerable
 by a malicious uploaded file, exactly our attack surface). This backend
 uses `exceljs` instead, which has no such issue.
 
-Still only in `../index.html` (single-company, `localStorage`-based): the
-compliance report, backup/restore, and the print-settings/theme
-customization screen.
+A Compliance Report page mirrors the original: gross/deductions/net/
+employer-GOSI/total-employment-cost/statutory KPI cards, an IAS 19/IFRS
+reconciliation line, and a cost-by-department table, computed per payroll
+run and printable. The Payroll page also has a searchable Archive (every
+run persists automatically — no manual "save" step needed, since this is
+a real database, not `localStorage`) with view/print/delete per run.
+
+Still only in `../index.html` (single-company, `localStorage`-based):
+backup/restore and the print-settings/theme customization screen.
 
 ## Deployment
 
