@@ -333,6 +333,7 @@ table.dtbl input[type=number]:focus,table.dtbl input[type=text]:focus{outline:2p
           <div class="fg" id="prGenerateWrap" style="display:none;"><label>&nbsp;</label><button class="btn btn-outline" onclick="generatePayrollLines()">↻ توليد من الموظفين النشطين <span class="bl">Generate</span></button></div>
           <div class="fg" id="prRefreshWrap" style="display:none;"><label>&nbsp;</label><button class="btn btn-outline" onclick="refreshPayrollEmployeeData()" title="يحدّث الرقم الوظيفي/الهوية/القسم/مركز التكلفة من بيانات الموظف الحالية دون المساس بأرقام الراتب">🔄 تحديث بيانات الموظفين <span class="bl">Refresh Employee Data</span></button></div>
           <div class="fg"><label>&nbsp;</label><button class="btn btn-gold" onclick="printPayrollSummary()">📄 طباعة الملخص <span class="bl">Print Summary</span></button></div>
+          <div class="fg"><label>&nbsp;</label><button class="btn btn-navy" onclick="printAllPayrollSlips()">🖨️ طباعة الكل <span class="bl">Print All</span></button></div>
           <div class="fg"><label>&nbsp;</label><button class="btn btn-outline" onclick="openPayrollColumnPicker()">⚙️ أعمدة الطباعة <span class="bl">Print Columns</span></button></div>
         </div>
       </div>
@@ -1393,23 +1394,8 @@ function sr(arL, enL, val, force){
   return `<div class="srow"><span class="srow-lbl">${esc(arL)}<span class="srow-lbl-en">${esc(enL)}</span></span>
     <span class="srow-val${z?' z':''}">${n(val||0)}</span></div>`;
 }
-async function printPayrollSlip(lineId){
-  const r = currentPayrollRun;
-  const l = (r.lines||[]).find(x => x.id === lineId);
-  if (!l) return;
-  try{
-    const company = await api(`/companies/${activeCompanyId}`);
-    const tc = THEME_PRESETS[company.theme] || THEME_PRESETS.navy;
-    const payBadge = l.payMethod === 'Cash'
-      ? `<span style="background:#ffeedd;color:#c0602b;padding:2px 8px;border-radius:8px;font-size:7.5pt;font-weight:600;">Cash / نقدي</span>`
-      : `<span style="background:#ddeeff;color:${tc.navy2};padding:2px 8px;border-radius:8px;font-size:7.5pt;font-weight:600;">Transfer / تحويل</span>`;
-    const logoHtml = company.printShowLogo!==false && company.logoDataUrl
-      ? `<img src="${company.logoDataUrl}" class="s-logo" alt="logo">`
-      : `<div class="s-logo" style="display:flex;align-items:center;justify-content:center;font-size:9pt;color:rgba(255,255,255,.4);">LOGO</div>`;
-
-    const w = window.open('', '_blank');
-    w.document.write(`<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8">
-    <style>@page{size:A4;margin:8mm;}*{margin:0;padding:0;box-sizing:border-box;}body{font-family:Arial;direction:rtl;background:#fff;}
+function payrollSlipStyleBlock(tc){
+  return `<style>@page{size:A4;margin:8mm;}*{margin:0;padding:0;box-sizing:border-box;}body{font-family:Arial;direction:rtl;background:#fff;}
     .bl{opacity:.6;font-size:.85em;}
     .slip{border:1.5px solid ${tc.navy2};font-size:9.5pt;direction:rtl;background:#fff;}
     .slip-hdr{display:flex;align-items:center;justify-content:space-between;background:${tc.navy2};color:#fff;padding:6px 12px;}
@@ -1432,12 +1418,22 @@ async function printPayrollSlip(lineId){
     .slip-footer{display:grid;grid-template-columns:1fr 1fr 1fr;padding:5px 10px;gap:8px;border-top:1px solid #c8d4e8;}
     .sfc{display:flex;flex-direction:column;gap:2px;}.sfc-lbl{font-size:7.5pt;color:#666;}.sfc-lbl-en{font-size:6.5pt;color:#aaa;}
     .sfc-sig{border-bottom:1px solid #999;min-height:17px;margin-top:2px;font-size:8.5pt;padding-bottom:2px;}
+    .slip-page{page-break-after:always;}
     .toolbar{display:flex;gap:8px;justify-content:center;margin-bottom:12px;}
     .toolbar button{padding:8px 16px;border:none;border-radius:6px;cursor:pointer;font-size:12.5px;font-weight:600;font-family:inherit;background:${tc.navy2};color:#fff;}
     @media print{.toolbar{display:none;}}
-    </style></head><body>
-    <div class="toolbar"><button onclick="window.print()">🖨️ طباعة / حفظ PDF <span class="bl">Print / Save as PDF</span></button></div>
-    ${customHeaderHtml(company)}
+    </style>`;
+}
+// Builds one self-contained slip (own header/logo/footer), reused by both
+// the single-employee print and the "Print All" bulk print — same format.
+function buildPayrollSlipHtml(company, r, l, tc){
+  const payBadge = l.payMethod === 'Cash'
+    ? `<span style="background:#ffeedd;color:#c0602b;padding:2px 8px;border-radius:8px;font-size:7.5pt;font-weight:600;">Cash / نقدي</span>`
+    : `<span style="background:#ddeeff;color:${tc.navy2};padding:2px 8px;border-radius:8px;font-size:7.5pt;font-weight:600;">Transfer / تحويل</span>`;
+  const logoHtml = company.printShowLogo!==false && company.logoDataUrl
+    ? `<img src="${company.logoDataUrl}" class="s-logo" alt="logo">`
+    : `<div class="s-logo" style="display:flex;align-items:center;justify-content:center;font-size:9pt;color:rgba(255,255,255,.4);">LOGO</div>`;
+  return `${customHeaderHtml(company)}
     <div class="slip">
       <div class="slip-hdr">
         ${logoHtml}
@@ -1500,7 +1496,40 @@ async function printPayrollSlip(lineId){
         <div class="sfc"><span class="sfc-lbl">التاريخ<span class="sfc-lbl-en">Date:</span></span><div class="sfc-sig">&nbsp;/&nbsp;/${r.yearG}</div></div>
       </div>
     </div>
-    ${customFooterHtml(company)}
+    ${customFooterHtml(company)}`;
+}
+async function printPayrollSlip(lineId){
+  const r = currentPayrollRun;
+  const l = (r.lines||[]).find(x => x.id === lineId);
+  if (!l) return;
+  try{
+    const company = await api(`/companies/${activeCompanyId}`);
+    const tc = THEME_PRESETS[company.theme] || THEME_PRESETS.navy;
+    const w = window.open('', '_blank');
+    w.document.write(`<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8">
+    ${payrollSlipStyleBlock(tc)}</head><body>
+    <div class="toolbar"><button onclick="window.print()">🖨️ طباعة / حفظ PDF <span class="bl">Print / Save as PDF</span></button></div>
+    ${buildPayrollSlipHtml(company, r, l, tc)}
+    </body></html>`);
+    w.document.close();
+    setTimeout(() => w.print(), 400);
+  }catch(e){ toast(e.message, true); }
+}
+// "Print All" — every employee's slip, one per page, same format as a
+// single slip (each self-contained with its own header/logo/footer).
+async function printAllPayrollSlips(){
+  const r = currentPayrollRun;
+  if (!r || !(r.lines||[]).length) return toast('لا توجد بيانات في هذه المسيرة', true);
+  try{
+    const company = await api(`/companies/${activeCompanyId}`);
+    const tc = THEME_PRESETS[company.theme] || THEME_PRESETS.navy;
+    const sortedLines = sortRows(r.lines, _prLineSort, (l,k) => l[k]);
+    const pagesHtml = sortedLines.map((l, i) => `<div class="slip-page">${buildPayrollSlipHtml(company, r, l, tc)}</div>`).join('');
+    const w = window.open('', '_blank');
+    w.document.write(`<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8">
+    ${payrollSlipStyleBlock(tc)}</head><body>
+    <div class="toolbar"><button onclick="window.print()">🖨️ طباعة الكل / حفظ PDF <span class="bl">Print All / Save as PDF</span></button></div>
+    ${pagesHtml}
     </body></html>`);
     w.document.close();
     setTimeout(() => w.print(), 400);

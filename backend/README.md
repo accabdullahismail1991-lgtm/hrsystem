@@ -215,6 +215,12 @@ descending), so records can be ordered by employee number, name,
 department, etc. instead of only insertion order; the payroll table's `#`
 header resets to the default name-sequence order.
 
+A "🖨️ طباعة الكل / Print All" button on the Payroll page prints every
+employee's payroll slip in one document (one slip per page, page breaks
+between them), reusing the exact same slip markup as the single-employee
+print button — both now share one `buildPayrollSlipHtml` builder so the
+formats can never drift apart.
+
 Still only in `../index.html` (single-company, `localStorage`-based):
 backup/restore.
 
