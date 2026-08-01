@@ -313,6 +313,7 @@ table.dtbl tr:hover td{background:#f5f8ff;}
           <div class="fg" id="prGenerateWrap" style="display:none;"><label>&nbsp;</label><button class="btn btn-outline" onclick="generatePayrollLines()">↻ توليد من الموظفين النشطين <span class="bl">Generate</span></button></div>
           <div class="fg" id="prRefreshWrap" style="display:none;"><label>&nbsp;</label><button class="btn btn-outline" onclick="refreshPayrollEmployeeData()" title="يحدّث الرقم الوظيفي/الهوية/القسم/مركز التكلفة من بيانات الموظف الحالية دون المساس بأرقام الراتب">🔄 تحديث بيانات الموظفين <span class="bl">Refresh Employee Data</span></button></div>
           <div class="fg"><label>&nbsp;</label><button class="btn btn-gold" onclick="printPayrollSummary()">📄 طباعة الملخص <span class="bl">Print Summary</span></button></div>
+          <div class="fg"><label>&nbsp;</label><button class="btn btn-outline" onclick="openPayrollColumnPicker()">⚙️ أعمدة الطباعة <span class="bl">Print Columns</span></button></div>
         </div>
       </div>
       <div class="section-card"><div class="tbl-wrap"><table class="dtbl" id="prTable"></table></div></div>
@@ -405,6 +406,19 @@ table.dtbl tr:hover td{background:#f5f8ff;}
         <div style="display:flex;gap:8px;margin-top:6px;">
           <button class="btn btn-navy" onclick="addUser()">+ إضافة <span class="bl">Add</span></button>
           <button class="btn btn-outline" onclick="closeModal('usrModalOverlay')">إلغاء <span class="bl">Cancel</span></button>
+        </div>
+      </div>
+    </div>
+
+    <div class="overlay" id="prColsModalOverlay">
+      <div class="modal" style="width:min(96vw,520px);">
+        <div class="modal-head"><h3>⚙️ أعمدة الطباعة <span class="bl">Print Columns</span></h3><button class="close-btn" onclick="closeModal('prColsModalOverlay')">✕</button></div>
+        <p style="font-size:12px;color:var(--muted);margin:0 0 8px;">اختر الأعمدة التي تظهر في طباعة ملخص المسيرة. <span class="bl">Choose which columns appear on the printed payroll summary.</span></p>
+        <div id="prColsList" style="display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;max-height:50vh;overflow:auto;"></div>
+        <div style="display:flex;gap:8px;margin-top:12px;">
+          <button class="btn btn-navy" onclick="applyPayrollColumnPicker(true)">🖨️ حفظ وطباعة <span class="bl">Save & Print</span></button>
+          <button class="btn btn-outline" onclick="applyPayrollColumnPicker(false)">حفظ فقط <span class="bl">Save Only</span></button>
+          <button class="btn btn-outline" onclick="closeModal('prColsModalOverlay')">إلغاء <span class="bl">Cancel</span></button>
         </div>
       </div>
     </div>
@@ -1257,34 +1271,159 @@ async function exportPayrollSummaryExcel(runId){
     URL.revokeObjectURL(url);
   }catch(e){ toast(e.message, true); }
 }
+// Column definitions for the printed payroll summary. "locked" columns are
+// always shown and don't appear as toggles in the column picker. "numeric"
+// columns get summed for the branch subtotal / grand total rows.
+const PAYROLL_SUMMARY_COLUMN_DEFS = [
+  { key:'idx',        ar:'#',                       en:'#',            numeric:false, locked:true  },
+  { key:'empno',      ar:'الرقم الوظيفي',           en:'Emp No.',      numeric:false },
+  { key:'name',       ar:'الاسم',                   en:'Name',         numeric:false, locked:true  },
+  { key:'dept',       ar:'القسم',                   en:'Dept',         numeric:false },
+  { key:'cc',         ar:'الفرع/مركز التكلفة',      en:'Branch/CC',    numeric:false },
+  { key:'present',    ar:'حضور',                    en:'Present',      numeric:true  },
+  { key:'absent',     ar:'غياب',                    en:'Absent',       numeric:true  },
+  { key:'basic',      ar:'الأساسي',                 en:'Basic',        numeric:true  },
+  { key:'housing',    ar:'السكن',                   en:'Housing',      numeric:true  },
+  { key:'transport',  ar:'النقل',                   en:'Transport',    numeric:true  },
+  { key:'other',      ar:'أخرى',                    en:'Other',        numeric:true  },
+  { key:'dueSalary',  ar:'المستحق',                 en:'Due Salary',   numeric:true  },
+  { key:'overtime',   ar:'إضافي',                   en:'OT',           numeric:true  },
+  { key:'gross',      ar:'إجمالي',                  en:'Gross',        numeric:true, bold:true },
+  { key:'advance',    ar:'سلفة',                    en:'Advance',      numeric:true  },
+  { key:'otherDed',   ar:'خصومات أخرى',             en:'Other Ded.',   numeric:true  },
+  { key:'totalDed',   ar:'إجمالي الخصومات',         en:'Total Ded.',   numeric:true  },
+  { key:'net',        ar:'الصافي',                  en:'Net',          numeric:true, bold:true, color:'#1a6b3a' },
+  { key:'payMethod',  ar:'الدفع',                   en:'Payment',      numeric:false },
+  { key:'note',       ar:'ملاحظات',                 en:'Notes',        numeric:false },
+];
+const PR_SUMMARY_COLS_KEY = 'pr_summary_cols_v1';
+function getVisiblePayrollSummaryCols(){
+  let stored = null;
+  try{ stored = JSON.parse(localStorage.getItem(PR_SUMMARY_COLS_KEY)); }catch(e){}
+  const allKeys = PAYROLL_SUMMARY_COLUMN_DEFS.map(c => c.key);
+  if (!Array.isArray(stored)) return allKeys;
+  const kept = allKeys.filter(k => PAYROLL_SUMMARY_COLUMN_DEFS.find(c => c.key===k).locked || stored.includes(k));
+  return kept.length ? kept : allKeys;
+}
+function openPayrollColumnPicker(){
+  const visible = new Set(getVisiblePayrollSummaryCols());
+  document.getElementById('prColsList').innerHTML = PAYROLL_SUMMARY_COLUMN_DEFS.map(c => `
+    <label style="display:flex;align-items:center;gap:6px;font-size:13px;${c.locked?'opacity:.6;':''}">
+      <input type="checkbox" data-col-key="${c.key}" ${visible.has(c.key)?'checked':''} ${c.locked?'disabled':''}>
+      ${esc(c.ar)} <span class="bl">${esc(c.en)}</span>
+    </label>`).join('');
+  openModal('prColsModalOverlay');
+}
+function applyPayrollColumnPicker(alsoPrint){
+  const checked = Array.from(document.querySelectorAll('#prColsList input[data-col-key]'))
+    .filter(cb => cb.checked).map(cb => cb.dataset.colKey);
+  localStorage.setItem(PR_SUMMARY_COLS_KEY, JSON.stringify(checked));
+  closeModal('prColsModalOverlay');
+  toast('تم حفظ إعدادات الأعمدة');
+  if (alsoPrint) printPayrollSummary();
+}
+function payrollSummaryRawValue(key, l, present){
+  switch(key){
+    case 'present': return present;
+    case 'absent': return l.absentDays || 0;
+    case 'basic': return l.basic || 0;
+    case 'housing': return l.housing || 0;
+    case 'transport': return l.transport || 0;
+    case 'other': return l.other || 0;
+    case 'dueSalary': return l.dueSalary || 0;
+    case 'overtime': return l.overtime || 0;
+    case 'gross': return l.grossPay || 0;
+    case 'advance': return l.advanceDeduction || 0;
+    case 'otherDed': return l.otherDeduction || 0;
+    case 'totalDed': return l.totalDeductions || 0;
+    case 'net': return l.netPay || 0;
+    default: return 0;
+  }
+}
+function payrollSummaryCellHtml(col, l, idx, present){
+  let val;
+  switch(col.key){
+    case 'idx': val = idx; break;
+    case 'empno': val = esc(l.empno||'-'); break;
+    case 'name': val = esc(l.namear); break;
+    case 'dept': val = esc(l.dept||'-'); break;
+    case 'cc': val = esc(l.cc||'-'); break;
+    case 'present': val = present; break;
+    case 'absent': val = l.absentDays; break;
+    case 'payMethod': val = esc(l.payMethod); break;
+    case 'note': val = esc(l.note||'-'); break;
+    default: val = n(payrollSummaryRawValue(col.key, l, present));
+  }
+  const styleParts = [];
+  if (col.bold) styleParts.push('font-weight:700;');
+  if (col.color) styleParts.push(`color:${col.color};`);
+  if (col.key === 'name') styleParts.push('text-align:right;');
+  if (col.key === 'note') styleParts.push('font-size:.85em;');
+  return `<td style="${styleParts.join('')}">${val}</td>`;
+}
 async function printPayrollSummary(){
   const r = currentPayrollRun;
   if (!r || !(r.lines||[]).length) return toast('لا توجد بيانات في هذه المسيرة', true);
   try{
     const company = await api(`/companies/${activeCompanyId}`);
-    let totGross = 0, totDed = 0, totNet = 0;
-    const rows = r.lines.map((l,i) => {
-      totGross += l.grossPay; totDed += l.totalDeductions; totNet += l.netPay;
-      const present = r.workDays - l.absentDays;
-      return `<tr><td>${i+1}</td><td style="font-family:monospace;">${esc(l.empno||'-')}</td><td style="text-align:right;">${esc(l.namear)}</td><td>${esc(l.dept||'-')}</td><td>${esc(l.cc||'-')}</td>
-        <td>${present}</td><td>${l.absentDays}</td>
-        <td>${n(l.basic)}</td><td>${n(l.housing)}</td><td>${n(l.transport)}</td><td>${n(l.other)}</td>
-        <td>${n(l.dueSalary)}</td><td>${n(l.overtime)}</td>
-        <td style="font-weight:700;">${n(l.grossPay)}</td>
-        <td>${n(l.advanceDeduction)}</td><td>${n(l.otherDeduction)}</td><td>${n(l.totalDeductions)}</td>
-        <td style="font-weight:700;color:#1a6b3a;">${n(l.netPay)}</td>
-        <td>${esc(l.payMethod)}</td><td style="font-size:8pt;">${esc(l.note||'-')}</td></tr>`;
+    const cols = getVisiblePayrollSummaryCols().map(k => PAYROLL_SUMMARY_COLUMN_DEFS.find(c => c.key===k)).filter(Boolean);
+    const labelColIdx = cols.findIndex(c => !c.numeric);
+    const fontSize = cols.length > 16 ? 7 : cols.length > 12 ? 7.8 : cols.length > 8 ? 8.6 : 9.5;
+
+    // Group lines by branch/cost center so each branch prints on its own sheet.
+    const groups = new Map();
+    r.lines.forEach(l => {
+      const key = l.cc || l.dept || 'بدون فرع / No Branch';
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(l);
+    });
+
+    const theadHtml = `<thead><tr>${cols.map(c => `<th>${esc(c.ar)}<span class="bl">${esc(c.en)}</span></th>`).join('')}</tr></thead>`;
+    const grandTotals = {};
+    cols.forEach(c => { if (c.numeric) grandTotals[c.key] = 0; });
+
+    const branchNames = Array.from(groups.keys());
+    let pagesHtml = '';
+    branchNames.forEach((branchName, gi) => {
+      const lines = groups.get(branchName);
+      const groupTotals = {};
+      cols.forEach(c => { if (c.numeric) groupTotals[c.key] = 0; });
+      const rowsHtml = lines.map((l, i) => {
+        const present = r.workDays - l.absentDays;
+        cols.forEach(c => { if (c.numeric) groupTotals[c.key] += payrollSummaryRawValue(c.key, l, present); });
+        return `<tr>${cols.map(c => payrollSummaryCellHtml(c, l, i+1, present)).join('')}</tr>`;
+      }).join('');
+      cols.forEach(c => { if (c.numeric) grandTotals[c.key] += groupTotals[c.key]; });
+      const subtotalCells = cols.map((c, ci) => {
+        if (c.numeric) return `<td>${n(Math.round(groupTotals[c.key]))}</td>`;
+        if (ci === labelColIdx) return `<td style="text-align:right;">إجمالي الفرع: ${esc(branchName)} <span class="bl">Branch Total</span></td>`;
+        return `<td></td>`;
+      }).join('');
+      pagesHtml += `<div class="branch-block"${gi < branchNames.length - 1 ? ' style="page-break-after:always;"' : ''}>
+        <div class="branch-title">📍 ${esc(branchName)}</div>
+        <table>${theadHtml}<tbody>${rowsHtml}<tr class="subtot">${subtotalCells}</tr></tbody></table>
+      </div>`;
+    });
+
+    const grandCells = cols.map((c, ci) => {
+      if (c.numeric) return `<td>${n(Math.round(grandTotals[c.key]))}</td>`;
+      if (ci === labelColIdx) return `<td style="text-align:right;">الإجمالي الكلي <span class="bl">Grand Total</span></td>`;
+      return `<td></td>`;
     }).join('');
+
     const w = window.open('', '_blank');
     w.document.write(`<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8">
-    <style>@page{size:A4 landscape;margin:10mm;}body{font-family:Arial;font-size:9.5pt;direction:rtl;}
+    <style>@page{size:A4 landscape;margin:8mm;}body{font-family:Arial;font-size:${fontSize}pt;direction:rtl;}
     .bl{opacity:.6;font-size:.85em;}
     h2{color:#1a3a6b;text-align:center;margin-bottom:2px;}
     .sub{text-align:center;font-size:9pt;color:#555;margin-bottom:10px;}
-    table{width:100%;border-collapse:collapse;}th{background:#1a3a6b;color:#fff;padding:6px;}
-    td{padding:5px;border-bottom:1px solid #ddd;text-align:center;}
+    .branch-title{font-weight:800;font-size:1.1em;color:#1a3a6b;background:#eef3fc;padding:6px 10px;border-radius:5px;margin:10px 0 4px;}
+    table{width:100%;border-collapse:collapse;table-layout:fixed;}
+    th{background:#1a3a6b;color:#fff;padding:5px 3px;word-break:break-word;}
+    td{padding:4px 3px;border-bottom:1px solid #ddd;text-align:center;word-break:break-word;overflow-wrap:break-word;}
     tr:nth-child(even) td{background:#f5f8ff;}
-    .tot td{background:#e8f0ff;font-weight:800;color:#1a3a6b;border-top:2px solid #1a3a6b;}
+    .subtot td{background:#e8f0ff;font-weight:800;color:#1a3a6b;border-top:2px solid #1a3a6b;border-bottom:3px double #1a3a6b;}
+    .grandtot td{background:#fff3d6;font-weight:800;color:#8a5c00;border-top:3px double #8a5c00;}
     .sigs{display:flex;justify-content:space-around;margin-top:30px;}
     .sig{text-align:center;font-size:9pt;}
     .sig .line{border-bottom:1.5px solid #333;width:160px;height:30px;margin-bottom:4px;}
@@ -1301,17 +1440,9 @@ async function printPayrollSummary(){
     ${customHeaderHtml(company)}
     ${company.printShowLogo!==false && company.logoDataUrl?`<div style="text-align:center;"><img src="${company.logoDataUrl}" style="max-height:44px;margin-bottom:6px;"></div>`:''}
     <h2>${esc(company.nameAr)} <span class="bl">${esc(company.nameEn)}</span></h2>
-    <div class="sub">ملخص مسيرة الرواتب <span class="bl">Payroll Summary</span> — ${r.month}/${r.yearG} ${r.yearH?('هـ'+esc(r.yearH)):''} — عدد الموظفين <span class="bl">Employees</span>: ${r.lines.length}</div>
-    <table style="font-size:8pt;"><thead><tr><th>#</th><th>الرقم الوظيفي<span class="bl">Emp No.</span></th><th>الاسم<span class="bl">Name</span></th><th>القسم<span class="bl">Dept</span></th><th>الفرع/مركز التكلفة<span class="bl">Branch/CC</span></th>
-      <th>حضور<span class="bl">Present</span></th><th>غياب<span class="bl">Absent</span></th>
-      <th>الأساسي<span class="bl">Basic</span></th><th>السكن<span class="bl">Housing</span></th><th>النقل<span class="bl">Transport</span></th><th>أخرى<span class="bl">Other</span></th>
-      <th>المستحق<span class="bl">Due Salary</span></th><th>إضافي<span class="bl">OT</span></th>
-      <th>إجمالي<span class="bl">Gross</span></th>
-      <th>سلفة<span class="bl">Advance</span></th><th>خصومات أخرى<span class="bl">Other Ded.</span></th><th>إجمالي الخصومات<span class="bl">Total Ded.</span></th>
-      <th>الصافي<span class="bl">Net</span></th><th>الدفع<span class="bl">Payment</span></th><th>ملاحظات<span class="bl">Notes</span></th></tr></thead>
-    <tbody>${rows}
-      <tr class="tot"><td colspan="12" style="text-align:left;">الإجمالي <span class="bl">Total</span></td><td>${n(totGross)}</td><td colspan="2"></td><td>${n(totDed)}</td><td>${n(totNet)}</td><td colspan="2"></td></tr>
-    </tbody></table>
+    <div class="sub">ملخص مسيرة الرواتب <span class="bl">Payroll Summary</span> — ${r.month}/${r.yearG} ${r.yearH?('هـ'+esc(r.yearH)):''} — عدد الموظفين <span class="bl">Employees</span>: ${r.lines.length} — عدد الفروع <span class="bl">Branches</span>: ${branchNames.length}</div>
+    ${pagesHtml}
+    <table><tbody><tr class="grandtot">${grandCells}</tr></tbody></table>
     <div class="sigs">
       ${(company.signatures && company.signatures.length ? company.signatures : [{titleAr:'مدير الموارد البشرية',titleEn:'HR Manager'},{titleAr:'المدير المالي',titleEn:'Finance Manager'},{titleAr:'المدير العام',titleEn:'General Manager'}])
         .map(s => `<div class="sig"><div class="line">${s.name?esc(s.name):''}</div>${esc(s.titleAr)}<span class="bl">${esc(s.titleEn)}</span></div>`).join('')}
