@@ -418,6 +418,19 @@ table.dtbl tr:hover td{background:#f5f8ff;}
         <p style="font-size:11px;color:var(--muted);margin-bottom:8px;">تظهر على المستندات المطبوعة (ملخص الرواتب، إلخ) <span class="bl">Shown on printed documents (payroll summary, etc.)</span></p>
         <div id="cs_sigList"></div>
         <button class="btn btn-outline btn-sm" style="margin-bottom:12px;" onclick="addSignatureRow()">➕ إضافة توقيع <span class="bl">Add Signature</span></button>
+
+        <div class="section-title">🎨 ألوان النظام <span class="bl">Theme Colors</span></div>
+        <div id="cs_themeSwatches" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;"></div>
+
+        <div class="section-title">🖨️ إعدادات الطباعة <span class="bl">Print Settings</span></div>
+        <label style="display:flex;align-items:center;gap:8px;font-size:12.5px;margin-bottom:10px;cursor:pointer;">
+          <input type="checkbox" id="cs_printShowLogo" checked> إظهار الشعار في المستندات المطبوعة <span class="bl">Show logo on printed documents</span>
+        </label>
+        <div class="form-grid">
+          <div class="fg" style="grid-column:1/-1;"><label>نص ترويسة مخصص (اختياري)<span class="bl">Custom header text (optional)</span></label><textarea id="cs_printHeaderText" rows="2" style="resize:vertical;font-family:inherit;border:1.5px solid var(--border);border-radius:6px;padding:7px 9px;font-size:12.5px;"></textarea></div>
+          <div class="fg" style="grid-column:1/-1;"><label>نص تذييل مخصص (اختياري)<span class="bl">Custom footer text (optional)</span></label><textarea id="cs_printFooterText" rows="2" style="resize:vertical;font-family:inherit;border:1.5px solid var(--border);border-radius:6px;padding:7px 9px;font-size:12.5px;"></textarea></div>
+        </div>
+
         <div style="display:flex;gap:8px;margin-top:12px;">
           <button class="btn btn-navy" id="csSaveBtn" onclick="saveCompanySettings()">💾 حفظ <span class="bl">Save</span></button>
           <button class="btn btn-red btn-sm" onclick="removeLogo()">✕ حذف الشعار <span class="bl">Remove Logo</span></button>
@@ -517,13 +530,14 @@ async function afterLogin(){
   applyCompanyContext();
 }
 
-function applyCompanyContext(){
+async function applyCompanyContext(){
   const c = companies.find(c => String(c.companyId) === String(activeCompanyId));
   activeRole = c ? c.role : null;
   document.getElementById('roleBadge').textContent = 'صلاحيتك: ' + roleLabel(activeRole);
   document.querySelector('[data-page="users"]').classList.toggle('hide', activeRole !== 'owner');
   document.querySelector('[data-page="companySettings"]').classList.toggle('hide', !canManage('manageCompanySettings'));
   showPage(document.querySelector('.nav-item.active')?.dataset.page || 'employees');
+  try{ const full = await api(`/companies/${activeCompanyId}`); applyThemeVars(full.theme || 'navy'); }catch{ /* theme is cosmetic only */ }
 }
 
 function switchCompany(id){
@@ -621,8 +635,14 @@ function resetEmployeeForm(){
   document.getElementById('empSaveBtn').innerHTML = '+ إضافة موظف <span class="bl">Add</span>';
   document.getElementById('empModalTitle').innerHTML = 'إضافة موظف <span class="bl">Add Employee</span>';
 }
+function nextEmpNo(){
+  if (!_employeesCache.length) return 'EMP-001';
+  const nums = _employeesCache.map(e => { const m = String(e.empno||'').match(/(\d+)$/); return m ? parseInt(m[1]) : 0; });
+  return 'EMP-' + String(Math.max(...nums, 0) + 1).padStart(3, '0');
+}
 async function openEmployeeModal(){
   resetEmployeeForm();
+  document.getElementById('e_empno').value = nextEmpNo();
   await populateBranchSelect('e_branchId');
   openModal('empModalOverlay');
 }
@@ -855,6 +875,29 @@ async function removeUser(id){
 // --- Company Settings ---
 let _companyLogoDataUrl = null;
 let _companySignatures = [];
+let _selectedTheme = 'navy';
+const THEME_PRESETS = {
+  navy:  {navy:'#0f2557',navy2:'#1a3a6b',navy3:'#2255a0',gold:'#c8a84b',gold2:'#e2c46a',green:'#1a6b3a',red:'#c0392b',bg:'#f0f4f8'},
+  green: {navy:'#0d3320',navy2:'#1a4731',navy3:'#25673f',gold:'#a8802e',gold2:'#c9a84b',green:'#1d7a3a',red:'#c0392b',bg:'#f0f5f0'},
+  maroon:{navy:'#3d0d0d',navy2:'#6b1a1a',navy3:'#8f2222',gold:'#c8a84b',gold2:'#e2c46a',green:'#1a5c30',red:'#a31515',bg:'#fdf3f3'},
+  purple:{navy:'#1e0d3d',navy2:'#3d1a6b',navy3:'#5522a0',gold:'#b8a84b',gold2:'#d4c46a',green:'#1a6b3a',red:'#c0392b',bg:'#f4f0f8'},
+  teal:  {navy:'#082d33',navy2:'#0f4f5c',navy3:'#1a7080',gold:'#c8a84b',gold2:'#e2c46a',green:'#1a6b4a',red:'#c0392b',bg:'#f0f5f5'},
+  dark:  {navy:'#0a0a12',navy2:'#1a1a2e',navy3:'#252540',gold:'#c8a84b',gold2:'#e2c46a',green:'#1a6b3a',red:'#c0392b',bg:'#12121e'},
+};
+function applyThemeVars(name){
+  const t = THEME_PRESETS[name] || THEME_PRESETS.navy;
+  const r = document.documentElement;
+  r.style.setProperty('--navy', t.navy); r.style.setProperty('--navy2', t.navy2); r.style.setProperty('--navy3', t.navy3);
+  r.style.setProperty('--gold', t.gold); r.style.setProperty('--gold2', t.gold2);
+  r.style.setProperty('--green', t.green); r.style.setProperty('--red', t.red); r.style.setProperty('--bg', t.bg);
+}
+function renderThemeSwatches(){
+  document.getElementById('cs_themeSwatches').innerHTML = Object.entries(THEME_PRESETS).map(([name,t]) => `
+    <div onclick="selectTheme('${name}')" style="width:44px;height:44px;border-radius:8px;background:${t.navy2};cursor:pointer;display:flex;align-items:center;justify-content:center;border:3px solid ${_selectedTheme===name?t.gold:'transparent'};" title="${name}">
+      ${_selectedTheme===name?'<span style="color:'+t.gold+';font-size:16px;">✓</span>':''}
+    </div>`).join('');
+}
+function selectTheme(name){ _selectedTheme = name; applyThemeVars(name); renderThemeSwatches(); }
 async function loadCompanySettings(){
   const canEdit = canManage('manageCompanySettings');
   document.getElementById('csSaveBtn').style.display = canEdit ? '' : 'none';
@@ -875,6 +918,11 @@ async function loadCompanySettings(){
       { titleAr:'المدير العام', titleEn:'General Manager', name:'' },
     ];
     renderSignatureList();
+    _selectedTheme = c.theme || 'navy';
+    renderThemeSwatches();
+    document.getElementById('cs_printShowLogo').checked = c.printShowLogo !== false;
+    document.getElementById('cs_printHeaderText').value = c.printHeaderText || '';
+    document.getElementById('cs_printFooterText').value = c.printFooterText || '';
   }catch(e){ toast(e.message, true); }
 }
 function renderSignatureList(){
@@ -906,6 +954,10 @@ async function saveCompanySettings(){
       nameEn: document.getElementById('cs_nameEn').value.trim(),
       logoDataUrl: _companyLogoDataUrl,
       signatures: _companySignatures,
+      theme: _selectedTheme,
+      printShowLogo: document.getElementById('cs_printShowLogo').checked,
+      printHeaderText: document.getElementById('cs_printHeaderText').value.trim() || null,
+      printFooterText: document.getElementById('cs_printFooterText').value.trim() || null,
     };
     if (!body.nameAr) return toast('اسم الشركة بالعربي مطلوب', true);
     await api(`/companies/${activeCompanyId}`, { method:'PATCH', body: JSON.stringify(body) });
@@ -1053,7 +1105,8 @@ async function printPayrollSlip(lineId){
     <div class="toolbar">
       <button class="btn-print" onclick="window.print()">🖨️ طباعة / حفظ PDF <span class="bl">Print / Save as PDF</span></button>
     </div>
-    <div class="hdr">${company.logoDataUrl?`<img src="${company.logoDataUrl}">`:''}<h2>${esc(company.nameAr)} <span class="bl">${esc(company.nameEn)}</span></h2>
+    ${customHeaderHtml(company)}
+    <div class="hdr">${company.printShowLogo!==false && company.logoDataUrl?`<img src="${company.logoDataUrl}">`:''}<h2>${esc(company.nameAr)} <span class="bl">${esc(company.nameEn)}</span></h2>
       <div class="sub">كشف الراتب — ${r.month}/${r.yearG} <span class="bl">Payroll Slip</span></div></div>
     <div class="box">
       <div class="info">
@@ -1077,12 +1130,21 @@ async function printPayrollSlip(lineId){
       ${slipRow('خصومات أخرى','Other Deductions', l.otherDeduction, true)}
       <div class="totals"><span>صافي الراتب <span class="bl">Net Pay</span></span><span>${n(l.netPay)} SAR</span></div>
     </div>
+    ${customFooterHtml(company)}
     </body></html>`);
     w.document.close();
     setTimeout(() => w.print(), 400);
   }catch(e){ toast(e.message, true); }
 }
 function n(v){ return Number(v||0).toLocaleString('en-US'); }
+// Custom header/footer text configured in Company Settings, wrapped for
+// print popups. Returns '' when the company hasn't set one.
+function customHeaderHtml(company){
+  return company.printHeaderText ? `<div style="text-align:center;font-size:10.5px;color:#444;margin-bottom:10px;white-space:pre-wrap;">${esc(company.printHeaderText)}</div>` : '';
+}
+function customFooterHtml(company){
+  return company.printFooterText ? `<div style="text-align:center;font-size:9.5px;color:#666;margin-top:16px;border-top:1px solid #ddd;padding-top:8px;white-space:pre-wrap;">${esc(company.printFooterText)}</div>` : '';
+}
 // Called from the payroll-summary popup window (window.opener.exportPayrollSummaryExcel(...)).
 async function exportPayrollSummaryExcel(runId){
   try{
@@ -1132,6 +1194,8 @@ async function printPayrollSummary(){
       <button class="btn-print" onclick="window.print()">🖨️ طباعة / حفظ PDF <span class="bl">Print / Save as PDF</span></button>
       <button class="btn-xlsx" onclick="window.opener.exportPayrollSummaryExcel(${r.id})">📤 تصدير Excel <span class="bl">Export Excel</span></button>
     </div>
+    ${customHeaderHtml(company)}
+    ${company.printShowLogo!==false && company.logoDataUrl?`<div style="text-align:center;"><img src="${company.logoDataUrl}" style="max-height:44px;margin-bottom:6px;"></div>`:''}
     <h2>${esc(company.nameAr)} <span class="bl">${esc(company.nameEn)}</span></h2>
     <div class="sub">ملخص مسيرة الرواتب <span class="bl">Payroll Summary</span> — ${r.month}/${r.yearG} ${r.yearH?('هـ'+esc(r.yearH)):''} — عدد الموظفين <span class="bl">Employees</span>: ${r.lines.length}</div>
     <table><thead><tr><th>#</th><th>الاسم<span class="bl">Name</span></th><th>القسم<span class="bl">Dept</span></th>
@@ -1144,6 +1208,7 @@ async function printPayrollSummary(){
       ${(company.signatures && company.signatures.length ? company.signatures : [{titleAr:'مدير الموارد البشرية',titleEn:'HR Manager'},{titleAr:'المدير المالي',titleEn:'Finance Manager'},{titleAr:'المدير العام',titleEn:'General Manager'}])
         .map(s => `<div class="sig"><div class="line">${s.name?esc(s.name):''}</div>${esc(s.titleAr)}<span class="bl">${esc(s.titleEn)}</span></div>`).join('')}
     </div>
+    ${customFooterHtml(company)}
     </body></html>`);
     w.document.close();
     setTimeout(() => w.print(), 400);
@@ -1370,7 +1435,10 @@ async function loadCompliancePage(){
 async function loadComplianceReport(runId){
   if (!runId) return;
   try{
-    const r = await api(`/companies/${activeCompanyId}/payroll-runs/${runId}`);
+    const [r, company] = await Promise.all([
+      api(`/companies/${activeCompanyId}/payroll-runs/${runId}`),
+      api(`/companies/${activeCompanyId}`),
+    ]);
     const lines = r.lines || [];
     let totGross=0, totStat=0, totOther=0, totNet=0, totGosiEr=0, totOtherEr=0, totEmpCost=0, totTax=0, totGosi=0, totHealth=0;
     const depts = {};
@@ -1386,7 +1454,7 @@ async function loadComplianceReport(runId){
       depts[d].ded += (stat+other); depts[d].empCost += l.employerCost;
     });
     const varPct = totGross > 0 ? ((totNet/totGross)*100).toFixed(1) : 0;
-    _complianceStats = { run: r, totGross, totStat, totOther, totNet, totGosiEr, totOtherEr, totEmpCost, totTax, totGosi, totHealth, varPct, depts, empCount: lines.length };
+    _complianceStats = { run: r, company, totGross, totStat, totOther, totNet, totGosiEr, totOtherEr, totEmpCost, totTax, totGosi, totHealth, varPct, depts, empCount: lines.length };
 
     document.getElementById('complianceContent').innerHTML = `
       <div class="section-card">
@@ -1433,6 +1501,8 @@ function printComplianceReport(){
   @media print{.toolbar{display:none;}}
   </style></head><body>
   <div class="toolbar"><button onclick="window.print()">🖨️ طباعة / حفظ PDF <span class="bl">Print / Save as PDF</span></button></div>
+  ${customHeaderHtml(s.company)}
+  ${s.company.printShowLogo!==false && s.company.logoDataUrl?`<div style="text-align:center;"><img src="${s.company.logoDataUrl}" style="max-height:44px;margin-bottom:6px;"></div>`:''}
   <h2>تقرير الامتثال <span class="bl">Compliance Report</span> — ${s.run.month}/${s.run.yearG}</h2>
   <div class="cards">
     <div class="card"><div class="lbl">إجمالي الرواتب / Gross</div><div class="val">${n(s.totGross)} SAR</div></div>
@@ -1444,6 +1514,7 @@ function printComplianceReport(){
   </div>
   <table><thead><tr><th>القسم / Dept</th><th>عدد / Emp</th><th>إجمالي / Gross</th><th>صافي / Net</th><th>تكلفة / Cost</th></tr></thead>
   <tbody>${Object.entries(s.depts).map(([d,v]) => `<tr><td>${esc(d)}</td><td>${v.emp}</td><td>${n(v.gross)}</td><td>${n(v.net)}</td><td>${n(v.empCost)}</td></tr>`).join('')}</tbody></table>
+  ${customFooterHtml(s.company)}
   </body></html>`);
   w.document.close();
   setTimeout(() => w.print(), 400);

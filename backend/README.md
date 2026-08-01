@@ -157,8 +157,22 @@ run and printable. The Payroll page also has a searchable Archive (every
 run persists automatically — no manual "save" step needed, since this is
 a real database, not `localStorage`) with view/print/delete per run.
 
+Company Settings also covers theme (6 color presets, applied live and
+persisted per company) and print settings (show/hide logo, custom
+header/footer text applied to every printed document). New employees'
+Employee No. auto-generates (`EMP-001`, `EMP-002`, ...) instead of being
+typed manually.
+
+**Bug fix:** `logo_data_url` (and a few other now-large-content columns)
+were declared as default string columns, which map to `VARCHAR(255)` on
+PostgreSQL. SQLite doesn't enforce that length, so local/dev testing never
+caught it, but Postgres does — every logo upload against the real deployed
+database failed. Fixed by widening the column to unlimited text
+(migration `20240107000000_fix_logo_column_length.js`); verified against
+a real Postgres instance, not just SQLite.
+
 Still only in `../index.html` (single-company, `localStorage`-based):
-backup/restore and the print-settings/theme customization screen.
+backup/restore.
 
 ## Deployment
 

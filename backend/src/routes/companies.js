@@ -43,15 +43,21 @@ router.get('/:companyId', requireCompanyRole('view'), async (req, res) => {
   res.json({
     id: company.id, nameAr: company.name_ar, nameEn: company.name_en,
     logoDataUrl: company.logo_data_url, signatures: parseSignatures(company.signatures), role: req.role,
+    theme: company.theme || 'navy', printHeaderText: company.print_header_text, printFooterText: company.print_footer_text,
+    printShowLogo: company.print_show_logo !== false,
   });
 });
 
 router.patch('/:companyId', requireCompanyRole('manageCompanySettings'), async (req, res) => {
-  const { nameAr, nameEn, logoDataUrl, signatures } = req.body || {};
+  const { nameAr, nameEn, logoDataUrl, signatures, theme, printHeaderText, printFooterText, printShowLogo } = req.body || {};
   const patch = {};
   if (nameAr !== undefined) patch.name_ar = nameAr;
   if (nameEn !== undefined) patch.name_en = nameEn;
   if (logoDataUrl !== undefined) patch.logo_data_url = logoDataUrl;
+  if (theme !== undefined) patch.theme = theme;
+  if (printHeaderText !== undefined) patch.print_header_text = printHeaderText;
+  if (printFooterText !== undefined) patch.print_footer_text = printFooterText;
+  if (printShowLogo !== undefined) patch.print_show_logo = !!printShowLogo;
   if (signatures !== undefined) patch.signatures = JSON.stringify(signatures || []);
   patch.updated_at = new Date();
   await db('companies').where({ id: req.companyId }).update(patch);
