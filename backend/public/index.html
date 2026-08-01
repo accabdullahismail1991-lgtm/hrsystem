@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>نظام الموارد البشرية متعدد الشركات | Multi-Company HR</title>
+<style>
+:root{
+  --navy:#0f2557;--navy2:#1a3a6b;--navy3:#2255a0;
+  --gold:#c8a84b;--gold2:#e2c46a;
+  --green:#1a6b3a;--red:#c0392b;
+  --bg:#f0f4f8;--card:#fff;
+  --border:#dde3ed;--text:#1a1a2e;--muted:#6b7280;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--text);direction:rtl;}
+.hide{display:none !important;}
+
+/* AUTH SCREEN */
+.auth-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;}
+.auth-card{background:var(--card);border-radius:12px;padding:32px;width:360px;box-shadow:0 8px 30px rgba(0,0,0,.12);}
+.auth-card h1{font-size:16px;color:var(--navy2);margin-bottom:4px;}
+.auth-card .sub{font-size:11.5px;color:var(--muted);margin-bottom:18px;}
+.fg{display:flex;flex-direction:column;gap:4px;margin-bottom:11px;}
+.fg label{font-size:11px;font-weight:600;color:var(--muted);}
+.fg input,.fg select{border:1.5px solid var(--border);border-radius:6px;padding:8px 10px;font-size:13px;font-family:inherit;}
+.fg input:focus,.fg select:focus{outline:none;border-color:var(--navy2);}
+.btn{padding:9px 16px;border:none;border-radius:6px;cursor:pointer;font-size:12.5px;font-family:inherit;font-weight:600;}
+.btn-navy{background:var(--navy2);color:#fff;width:100%;margin-top:6px;}
+.btn-navy:hover{background:var(--navy);}
+.btn-outline{background:transparent;border:1.5px solid var(--navy2);color:var(--navy2);}
+.btn-red{background:var(--red);color:#fff;}
+.btn-sm{padding:5px 10px;font-size:11px;}
+.switch-mode{text-align:center;font-size:11.5px;color:var(--navy3);cursor:pointer;margin-top:12px;}
+.err-box{background:#fdecea;color:var(--red);font-size:11.5px;padding:8px 10px;border-radius:6px;margin-bottom:10px;}
+
+/* APP SHELL */
+.sidebar{position:fixed;right:0;top:0;width:230px;height:100vh;background:var(--navy);color:#fff;display:flex;flex-direction:column;z-index:100;overflow-y:auto;}
+.sidebar-brand{padding:16px 14px 12px;border-bottom:1px solid rgba(255,255,255,.1);}
+.brand-name{font-size:12.5px;font-weight:700;color:#fff;}
+.brand-sub{font-size:10px;color:rgba(255,255,255,.45);margin-top:2px;}
+.company-select{margin:12px 14px;padding:7px 8px;border-radius:6px;background:rgba(255,255,255,.08);color:#fff;border:1px solid rgba(255,255,255,.15);font-size:11.5px;width:calc(100% - 28px);}
+.role-badge{margin:0 14px 10px;font-size:10px;color:var(--gold2);}
+.nav-item{display:flex;align-items:center;gap:9px;padding:10px 14px;cursor:pointer;font-size:12.5px;color:rgba(255,255,255,.72);border-right:3px solid transparent;}
+.nav-item:hover{background:rgba(255,255,255,.07);color:#fff;}
+.nav-item.active{background:rgba(200,168,75,.13);color:var(--gold);border-right-color:var(--gold);}
+.nav-bottom{margin-top:auto;padding:14px;}
+.main{margin-right:230px;min-height:100vh;padding:22px;}
+.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;}
+.topbar h2{font-size:15px;font-weight:700;color:var(--navy2);}
+.section-card{background:var(--card);border-radius:10px;padding:18px 20px;box-shadow:0 2px 8px rgba(0,0,0,.06);margin-bottom:16px;}
+.form-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:11px;margin-bottom:12px;}
+table.dtbl{width:100%;border-collapse:collapse;font-size:11.5px;}
+table.dtbl th{background:var(--navy);color:#fff;padding:7px;text-align:center;font-size:11px;}
+table.dtbl td{padding:6px 7px;text-align:center;border-bottom:1px solid #eef0f5;}
+table.dtbl tr:hover td{background:#f5f8ff;}
+.badge{display:inline-block;padding:2px 9px;border-radius:9px;font-size:10px;font-weight:600;background:#ddeeff;color:var(--navy2);}
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;padding:10px 20px;border-radius:8px;font-size:12.5px;z-index:9999;}
+.perm-note{font-size:10.5px;color:var(--muted);margin-bottom:10px;}
+</style>
+</head>
+<body>
+
+<div id="authScreen" class="auth-wrap">
+  <div class="auth-card">
+    <h1>🏢 نظام الموارد البشرية متعدد الشركات</h1>
+    <div class="sub">Multi-Company HR System</div>
+    <div id="authErr" class="err-box hide"></div>
+
+    <div id="loginForm">
+      <div class="fg"><label>البريد الإلكتروني</label><input id="li_email" type="email" autocomplete="username"></div>
+      <div class="fg"><label>كلمة المرور</label><input id="li_pass" type="password" autocomplete="current-password"></div>
+      <button class="btn btn-navy" onclick="doLogin()">تسجيل الدخول</button>
+      <div class="switch-mode" onclick="toggleAuthMode()">ليس لديك حساب؟ أنشئ شركة جديدة</div>
+    </div>
+
+    <div id="registerForm" class="hide">
+      <div class="fg"><label>اسم الشركة (عربي)</label><input id="rg_coAr"></div>
+      <div class="fg"><label>اسم الشركة (إنجليزي)</label><input id="rg_coEn"></div>
+      <div class="fg"><label>اسمك</label><input id="rg_name"></div>
+      <div class="fg"><label>البريد الإلكتروني</label><input id="rg_email" type="email" autocomplete="username"></div>
+      <div class="fg"><label>كلمة المرور (٨ أحرف على الأقل)</label><input id="rg_pass" type="password" autocomplete="new-password"></div>
+      <button class="btn btn-navy" onclick="doRegister()">إنشاء الشركة والحساب</button>
+      <div class="switch-mode" onclick="toggleAuthMode()">لديك حساب؟ سجّل الدخول</div>
+    </div>
+  </div>
+</div>
+
+<div id="appScreen" class="hide">
+  <div class="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-name">🏢 نظام الموارد البشرية</div>
+      <div class="brand-sub" id="userLabel"></div>
+    </div>
+    <select id="companySelect" class="company-select" onchange="switchCompany(this.value)"></select>
+    <div class="role-badge" id="roleBadge"></div>
+    <div class="nav-item active" data-page="employees" onclick="showPage('employees')">👥 <span>الموظفون</span></div>
+    <div class="nav-item" data-page="contractors" onclick="showPage('contractors')">🧰 <span>العمالة الخارجية / المقاولين</span></div>
+    <div class="nav-item" data-page="branches" onclick="showPage('branches')">🏬 <span>الفروع</span></div>
+    <div class="nav-item" data-page="users" onclick="showPage('users')">🔑 <span>المستخدمون والصلاحيات</span></div>
+    <div class="nav-bottom">
+      <button class="btn btn-outline btn-sm" style="width:100%;color:#fff;border-color:rgba(255,255,255,.3);" onclick="logout()">تسجيل الخروج</button>
+    </div>
+  </div>
+  <div class="main">
+    <div class="topbar"><h2 id="pageTitle">الموظفون</h2></div>
+
+    <div id="page-employees" class="page-content">
+      <div class="section-card">
+        <div class="perm-note" id="empPermNote"></div>
+        <div class="form-grid" id="empForm">
+          <div class="fg"><label>الاسم (عربي)*</label><input id="e_namear"></div>
+          <div class="fg"><label>القسم</label><input id="e_dept"></div>
+          <div class="fg"><label>الرقم الوظيفي</label><input id="e_empno"></div>
+          <div class="fg"><label>الأساسي</label><input id="e_basic" type="number"></div>
+          <div class="fg"><label>السكن</label><input id="e_housing" type="number"></div>
+          <div class="fg"><label>&nbsp;</label><button class="btn btn-navy" onclick="createEmployee()">+ إضافة موظف</button></div>
+        </div>
+      </div>
+      <div class="section-card"><div class="tbl-wrap"><table class="dtbl" id="empTable"></table></div></div>
+    </div>
+
+    <div id="page-contractors" class="page-content hide">
+      <div class="section-card">
+        <div class="perm-note" id="conPermNote"></div>
+        <div class="form-grid" id="conForm">
+          <div class="fg"><label>الاسم*</label><input id="c_name"></div>
+          <div class="fg"><label>نوع التعاقد</label>
+            <select id="c_contractType"><option value="monthly">شهري</option><option value="daily">يومي</option><option value="project">مشروع</option><option value="hourly">ساعة</option></select>
+          </div>
+          <div class="fg"><label>الأجر</label><input id="c_rate" type="number"></div>
+          <div class="fg"><label>الجهة/المشروع</label><input id="c_project"></div>
+          <div class="fg"><label>&nbsp;</label><button class="btn btn-navy" onclick="createContractor()">+ إضافة مقاول</button></div>
+        </div>
+      </div>
+      <div class="section-card"><div class="tbl-wrap"><table class="dtbl" id="conTable"></table></div></div>
+    </div>
+
+    <div id="page-branches" class="page-content hide">
+      <div class="section-card">
+        <div class="perm-note" id="brPermNote"></div>
+        <div class="form-grid" id="brForm">
+          <div class="fg"><label>الرمز*</label><input id="b_code"></div>
+          <div class="fg"><label>الاسم (عربي)*</label><input id="b_namear"></div>
+          <div class="fg"><label>المدينة</label><input id="b_city"></div>
+          <div class="fg"><label>&nbsp;</label><button class="btn btn-navy" onclick="createBranch()">+ إضافة فرع</button></div>
+        </div>
+      </div>
+      <div class="section-card"><div class="tbl-wrap"><table class="dtbl" id="brTable"></table></div></div>
+    </div>
+
+    <div id="page-users" class="page-content hide">
+      <div class="section-card">
+        <div class="perm-note" id="usrPermNote"></div>
+        <div class="form-grid" id="usrForm">
+          <div class="fg"><label>البريد الإلكتروني*</label><input id="u_email" type="email"></div>
+          <div class="fg"><label>الاسم (لمستخدم جديد)</label><input id="u_name"></div>
+          <div class="fg"><label>كلمة مرور (لمستخدم جديد)</label><input id="u_pass" type="password"></div>
+          <div class="fg"><label>الصلاحية</label>
+            <select id="u_role"><option value="viewer">مشاهدة فقط</option><option value="hr">موارد بشرية</option><option value="finance">مالية</option><option value="admin">مدير</option><option value="owner">مالك</option></select>
+          </div>
+          <div class="fg"><label>&nbsp;</label><button class="btn btn-navy" onclick="addUser()">+ إضافة مستخدم للشركة</button></div>
+        </div>
+      </div>
+      <div class="section-card"><div class="tbl-wrap"><table class="dtbl" id="usrTable"></table></div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = '/api';
+let token = localStorage.getItem('hr_token') || null;
+let me = null;
+let companies = [];
+let activeCompanyId = localStorage.getItem('hr_active_company') || null;
+let activeRole = null;
+
+function toast(msg, isErr){
+  const t = document.createElement('div');
+  t.className = 'toast';
+  if(isErr) t.style.background = 'var(--red)';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3000);
+}
+
+async function api(path, opts = {}){
+  const headers = Object.assign({'Content-Type':'application/json'}, opts.headers || {});
+  if (token) headers.Authorization = 'Bearer ' + token;
+  const res = await fetch(API + path, Object.assign({}, opts, { headers }));
+  const isJson = (res.headers.get('content-type')||'').includes('application/json');
+  const data = isJson ? await res.json() : null;
+  if (!res.ok) throw new Error((data && data.error) || ('HTTP ' + res.status));
+  return data;
+}
+
+function toggleAuthMode(){
+  document.getElementById('loginForm').classList.toggle('hide');
+  document.getElementById('registerForm').classList.toggle('hide');
+  document.getElementById('authErr').classList.add('hide');
+}
+
+function showAuthErr(msg){
+  const el = document.getElementById('authErr');
+  el.textContent = msg; el.classList.remove('hide');
+}
+
+async function doLogin(){
+  try{
+    const email = document.getElementById('li_email').value.trim();
+    const password = document.getElementById('li_pass').value;
+    const data = await api('/auth/login', { method:'POST', body: JSON.stringify({ email, password }) });
+    token = data.token; localStorage.setItem('hr_token', token);
+    await afterLogin();
+  }catch(e){ showAuthErr(e.message); }
+}
+
+async function doRegister(){
+  try{
+    const body = {
+      companyNameAr: document.getElementById('rg_coAr').value.trim(),
+      companyNameEn: document.getElementById('rg_coEn').value.trim(),
+      fullName: document.getElementById('rg_name').value.trim(),
+      email: document.getElementById('rg_email').value.trim(),
+      password: document.getElementById('rg_pass').value,
+    };
+    const data = await api('/auth/register', { method:'POST', body: JSON.stringify(body) });
+    token = data.token; localStorage.setItem('hr_token', token);
+    activeCompanyId = String(data.companyId);
+    await afterLogin();
+  }catch(e){ showAuthErr(e.message); }
+}
+
+function logout(){
+  token = null; localStorage.removeItem('hr_token');
+  localStorage.removeItem('hr_active_company');
+  document.getElementById('appScreen').classList.add('hide');
+  document.getElementById('authScreen').classList.remove('hide');
+}
+
+async function afterLogin(){
+  const data = await api('/auth/me');
+  me = data.user; companies = data.companies;
+  if (!companies.length){ showAuthErr('لا توجد شركات مرتبطة بهذا الحساب'); return; }
+  if (!activeCompanyId || !companies.find(c => String(c.companyId) === String(activeCompanyId))){
+    activeCompanyId = String(companies[0].companyId);
+  }
+  localStorage.setItem('hr_active_company', activeCompanyId);
+
+  document.getElementById('userLabel').textContent = me.full_name + ' — ' + me.email;
+  const sel = document.getElementById('companySelect');
+  sel.innerHTML = companies.map(c => `<option value="${c.companyId}">${c.nameAr}</option>`).join('');
+  sel.value = activeCompanyId;
+
+  document.getElementById('authScreen').classList.add('hide');
+  document.getElementById('appScreen').classList.remove('hide');
+  applyCompanyContext();
+}
+
+function applyCompanyContext(){
+  const c = companies.find(c => String(c.companyId) === String(activeCompanyId));
+  activeRole = c ? c.role : null;
+  document.getElementById('roleBadge').textContent = 'صلاحيتك: ' + roleLabel(activeRole);
+  document.querySelector('[data-page="users"]').classList.toggle('hide', activeRole !== 'owner');
+  showPage(document.querySelector('.nav-item.active')?.dataset.page || 'employees');
+}
+
+function switchCompany(id){
+  activeCompanyId = id;
+  localStorage.setItem('hr_active_company', id);
+  applyCompanyContext();
+}
+
+function roleLabel(r){
+  return { owner:'مالك', admin:'مدير', hr:'موارد بشرية', finance:'مالية', viewer:'مشاهدة فقط' }[r] || r;
+}
+
+const PAGE_TITLES = { employees:'الموظفون', contractors:'العمالة الخارجية / المقاولين', branches:'الفروع', users:'المستخدمون والصلاحيات' };
+
+function showPage(page){
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.page === page));
+  document.querySelectorAll('.page-content').forEach(p => p.classList.add('hide'));
+  document.getElementById('page-' + page).classList.remove('hide');
+  document.getElementById('pageTitle').textContent = PAGE_TITLES[page];
+  if (page === 'employees') loadEmployees();
+  if (page === 'contractors') loadContractors();
+  if (page === 'branches') loadBranches();
+  if (page === 'users') loadUsers();
+}
+
+function canManage(action){
+  const allowed = {
+    manageEmployees: ['owner','admin','hr'],
+    manageContractors: ['owner','admin','hr'],
+    manageBranches: ['owner','admin'],
+    manageUsers: ['owner'],
+  }[action] || [];
+  return allowed.includes(activeRole);
+}
+
+function esc(v){ return String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+// --- Employees ---
+async function loadEmployees(){
+  const canEdit = canManage('manageEmployees');
+  document.getElementById('empForm').style.display = canEdit ? '' : 'none';
+  document.getElementById('empPermNote').textContent = canEdit ? '' : 'صلاحيتك الحالية للمشاهدة فقط في هذه الشركة.';
+  try{
+    const rows = await api(`/companies/${activeCompanyId}/employees`);
+    const del = canEdit ? '<th>حذف</th>' : '';
+    let html = `<thead><tr><th>الرقم الوظيفي</th><th>الاسم</th><th>القسم</th><th>الأساسي</th><th>السكن</th><th>الحالة</th>${del}</tr></thead><tbody>`;
+    rows.forEach(e => {
+      html += `<tr><td>${esc(e.empno||'-')}</td><td>${esc(e.namear)}</td><td>${esc(e.dept||'-')}</td><td>${esc(e.basic)}</td><td>${esc(e.housing)}</td><td><span class="badge">${esc(e.status)}</span></td>`;
+      if (canEdit) html += `<td><button class="btn btn-red btn-sm" onclick="deleteEmployee(${e.id})">🗑</button></td>`;
+      html += `</tr>`;
+    });
+    document.getElementById('empTable').innerHTML = html + '</tbody>';
+  }catch(e){ toast(e.message, true); }
+}
+async function createEmployee(){
+  try{
+    const body = {
+      namear: document.getElementById('e_namear').value.trim(),
+      dept: document.getElementById('e_dept').value.trim() || undefined,
+      empno: document.getElementById('e_empno').value.trim() || undefined,
+      basic: Number(document.getElementById('e_basic').value) || 0,
+      housing: Number(document.getElementById('e_housing').value) || 0,
+    };
+    if (!body.namear) return toast('الاسم مطلوب', true);
+    await api(`/companies/${activeCompanyId}/employees`, { method:'POST', body: JSON.stringify(body) });
+    ['e_namear','e_dept','e_empno','e_basic','e_housing'].forEach(id => document.getElementById(id).value = '');
+    toast('تمت إضافة الموظف'); loadEmployees();
+  }catch(e){ toast(e.message, true); }
+}
+async function deleteEmployee(id){
+  try{ await api(`/companies/${activeCompanyId}/employees/${id}`, { method:'DELETE' }); loadEmployees(); }
+  catch(e){ toast(e.message, true); }
+}
+
+// --- Contractors ---
+async function loadContractors(){
+  const canEdit = canManage('manageContractors');
+  document.getElementById('conForm').style.display = canEdit ? '' : 'none';
+  document.getElementById('conPermNote').textContent = canEdit ? 'مقاولون وعمالة مؤقتة بعقود منفصلة — لا يظهرون في مسيرة الرواتب الرئيسية.' : 'صلاحيتك الحالية للمشاهدة فقط في هذه الشركة.';
+  try{
+    const rows = await api(`/companies/${activeCompanyId}/contractors`);
+    const del = canEdit ? '<th>حذف</th>' : '';
+    let html = `<thead><tr><th>الاسم</th><th>نوع التعاقد</th><th>الأجر</th><th>الجهة/المشروع</th><th>الحالة</th>${del}</tr></thead><tbody>`;
+    rows.forEach(c => {
+      html += `<tr><td>${esc(c.name)}</td><td>${esc(c.contractType)}</td><td>${esc(c.rate)} ${esc(c.currency)}</td><td>${esc(c.project||'-')}</td><td><span class="badge">${esc(c.status)}</span></td>`;
+      if (canEdit) html += `<td><button class="btn btn-red btn-sm" onclick="deleteContractor(${c.id})">🗑</button></td>`;
+      html += `</tr>`;
+    });
+    document.getElementById('conTable').innerHTML = html + '</tbody>';
+  }catch(e){ toast(e.message, true); }
+}
+async function createContractor(){
+  try{
+    const body = {
+      name: document.getElementById('c_name').value.trim(),
+      contractType: document.getElementById('c_contractType').value,
+      rate: Number(document.getElementById('c_rate').value) || 0,
+      project: document.getElementById('c_project').value.trim() || undefined,
+    };
+    if (!body.name) return toast('الاسم مطلوب', true);
+    await api(`/companies/${activeCompanyId}/contractors`, { method:'POST', body: JSON.stringify(body) });
+    ['c_name','c_rate','c_project'].forEach(id => document.getElementById(id).value = '');
+    toast('تمت الإضافة'); loadContractors();
+  }catch(e){ toast(e.message, true); }
+}
+async function deleteContractor(id){
+  try{ await api(`/companies/${activeCompanyId}/contractors/${id}`, { method:'DELETE' }); loadContractors(); }
+  catch(e){ toast(e.message, true); }
+}
+
+// --- Branches ---
+async function loadBranches(){
+  const canEdit = canManage('manageBranches');
+  document.getElementById('brForm').style.display = canEdit ? '' : 'none';
+  document.getElementById('brPermNote').textContent = canEdit ? '' : 'صلاحيتك الحالية للمشاهدة فقط في هذه الشركة.';
+  try{
+    const rows = await api(`/companies/${activeCompanyId}/branches`);
+    const del = canEdit ? '<th>حذف</th>' : '';
+    let html = `<thead><tr><th>الرمز</th><th>الاسم</th><th>المدينة</th><th>الحالة</th>${del}</tr></thead><tbody>`;
+    rows.forEach(b => {
+      html += `<tr><td>${esc(b.code)}</td><td>${esc(b.namear)}</td><td>${esc(b.city||'-')}</td><td><span class="badge">${esc(b.status)}</span></td>`;
+      if (canEdit) html += `<td><button class="btn btn-red btn-sm" onclick="deleteBranch(${b.id})">🗑</button></td>`;
+      html += `</tr>`;
+    });
+    document.getElementById('brTable').innerHTML = html + '</tbody>';
+  }catch(e){ toast(e.message, true); }
+}
+async function createBranch(){
+  try{
+    const body = {
+      code: document.getElementById('b_code').value.trim(),
+      namear: document.getElementById('b_namear').value.trim(),
+      city: document.getElementById('b_city').value.trim() || undefined,
+    };
+    if (!body.code || !body.namear) return toast('الرمز والاسم مطلوبان', true);
+    await api(`/companies/${activeCompanyId}/branches`, { method:'POST', body: JSON.stringify(body) });
+    ['b_code','b_namear','b_city'].forEach(id => document.getElementById(id).value = '');
+    toast('تمت الإضافة'); loadBranches();
+  }catch(e){ toast(e.message, true); }
+}
+async function deleteBranch(id){
+  try{ await api(`/companies/${activeCompanyId}/branches/${id}`, { method:'DELETE' }); loadBranches(); }
+  catch(e){ toast(e.message, true); }
+}
+
+// --- Users & roles (owner only — UI is hidden for others, API enforces it regardless) ---
+async function loadUsers(){
+  document.getElementById('usrPermNote').textContent = 'صلاحيات كل مستخدم خاصة بهذه الشركة فقط، ولا تمنحه أي وصول لبيانات شركات أخرى.';
+  try{
+    const rows = await api(`/companies/${activeCompanyId}/users`);
+    let html = `<thead><tr><th>البريد</th><th>الاسم</th><th>الصلاحية</th><th>إزالة</th></tr></thead><tbody>`;
+    rows.forEach(u => {
+      html += `<tr><td>${esc(u.email)}</td><td>${esc(u.fullName)}</td><td><span class="badge">${roleLabel(u.role)}</span></td>
+        <td>${u.id === me.id ? '-' : `<button class="btn btn-red btn-sm" onclick="removeUser(${u.id})">🗑</button>`}</td></tr>`;
+    });
+    document.getElementById('usrTable').innerHTML = html + '</tbody>';
+  }catch(e){ toast(e.message, true); }
+}
+async function addUser(){
+  try{
+    const body = {
+      email: document.getElementById('u_email').value.trim(),
+      fullName: document.getElementById('u_name').value.trim() || undefined,
+      password: document.getElementById('u_pass').value || undefined,
+      role: document.getElementById('u_role').value,
+    };
+    if (!body.email) return toast('البريد الإلكتروني مطلوب', true);
+    await api(`/companies/${activeCompanyId}/users`, { method:'POST', body: JSON.stringify(body) });
+    ['u_email','u_name','u_pass'].forEach(id => document.getElementById(id).value = '');
+    toast('تمت الإضافة'); loadUsers();
+  }catch(e){ toast(e.message, true); }
+}
+async function removeUser(id){
+  try{ await api(`/companies/${activeCompanyId}/users/${id}`, { method:'DELETE' }); loadUsers(); }
+  catch(e){ toast(e.message, true); }
+}
+
+// --- boot ---
+(async function boot(){
+  if (!token) return;
+  try{ await afterLogin(); }
+  catch{ logout(); }
+})();
+</script>
+</body>
+</html>
