@@ -120,16 +120,20 @@ a member of returns `403`, not the other company's data.
 
 ## What's covered vs. what's still in the legacy single-file app
 
-This backend now covers company/user/role management, employees,
-contractors, branches, payroll runs, advances/settlements, and end-of-service
-gratuity — all company-scoped with real server-side permission checks.
+This backend now covers company/user/role management, employees (full
+identity/personal/employment/salary field set — ID type & expiry, iqama,
+passport, nationality, gender, DOB, cost center, branch link, bank/IBAN,
+etc.), contractors, branches, payroll runs (with printable bilingual salary
+slips), advances/settlements, end-of-service gratuity, an org chart view,
+and a KPI dashboard — all company-scoped with real server-side permission
+checks, and the web UI labeled bilingually (Arabic/English) throughout,
+matching the original app's presentation.
 
 Still only in `../index.html` (single-company, `localStorage`-based):
-printable salary slips / reports, the org chart view, and the KPI dashboard.
-These are presentation layers over data this API already exposes, so they
-can be rebuilt as views in `public/index.html` (or a proper frontend)
-without any further schema changes — same pattern, just render instead of
-mutate.
+bulk/all-employees payroll printing in one document, company branding
+(logo/signatures) on printed documents, and the print-settings/theme
+customization screen. These are incremental additions to the payroll-run
+and company-settings data this API already exposes.
 
 ## Deployment
 

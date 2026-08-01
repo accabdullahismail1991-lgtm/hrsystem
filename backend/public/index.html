@@ -58,6 +58,10 @@ table.dtbl tr:hover td{background:#f5f8ff;}
 .badge{display:inline-block;padding:2px 9px;border-radius:9px;font-size:10px;font-weight:600;background:#ddeeff;color:var(--navy2);}
 .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;padding:10px 20px;border-radius:8px;font-size:12.5px;z-index:9999;}
 .perm-note{font-size:10.5px;color:var(--muted);margin-bottom:10px;}
+.bl{opacity:.6;font-size:.85em;font-weight:500;}
+.nav-item .bl{display:block;font-size:9px;margin-top:1px;}
+.section-title{font-size:11px;font-weight:700;color:var(--navy2);margin:12px 0 6px;}
+.section-title:first-child{margin-top:0;}
 </style>
 </head>
 <body>
@@ -69,20 +73,20 @@ table.dtbl tr:hover td{background:#f5f8ff;}
     <div id="authErr" class="err-box hide"></div>
 
     <div id="loginForm">
-      <div class="fg"><label>البريد الإلكتروني</label><input id="li_email" type="email" autocomplete="username"></div>
-      <div class="fg"><label>كلمة المرور</label><input id="li_pass" type="password" autocomplete="current-password"></div>
-      <button class="btn btn-navy" onclick="doLogin()">تسجيل الدخول</button>
-      <div class="switch-mode" onclick="toggleAuthMode()">ليس لديك حساب؟ أنشئ شركة جديدة</div>
+      <div class="fg"><label>البريد الإلكتروني <span class="bl">Email</span></label><input id="li_email" type="email" autocomplete="username"></div>
+      <div class="fg"><label>كلمة المرور <span class="bl">Password</span></label><input id="li_pass" type="password" autocomplete="current-password"></div>
+      <button class="btn btn-navy" onclick="doLogin()">تسجيل الدخول <span class="bl">Login</span></button>
+      <div class="switch-mode" onclick="toggleAuthMode()">ليس لديك حساب؟ أنشئ شركة جديدة <span class="bl">/ Create a company</span></div>
     </div>
 
     <div id="registerForm" class="hide">
-      <div class="fg"><label>اسم الشركة (عربي)</label><input id="rg_coAr"></div>
-      <div class="fg"><label>اسم الشركة (إنجليزي)</label><input id="rg_coEn"></div>
-      <div class="fg"><label>اسمك</label><input id="rg_name"></div>
-      <div class="fg"><label>البريد الإلكتروني</label><input id="rg_email" type="email" autocomplete="username"></div>
-      <div class="fg"><label>كلمة المرور (٨ أحرف على الأقل)</label><input id="rg_pass" type="password" autocomplete="new-password"></div>
-      <button class="btn btn-navy" onclick="doRegister()">إنشاء الشركة والحساب</button>
-      <div class="switch-mode" onclick="toggleAuthMode()">لديك حساب؟ سجّل الدخول</div>
+      <div class="fg"><label>اسم الشركة (عربي) <span class="bl">Company Name (Arabic)</span></label><input id="rg_coAr"></div>
+      <div class="fg"><label>اسم الشركة (إنجليزي) <span class="bl">Company Name (English)</span></label><input id="rg_coEn"></div>
+      <div class="fg"><label>اسمك <span class="bl">Your Name</span></label><input id="rg_name"></div>
+      <div class="fg"><label>البريد الإلكتروني <span class="bl">Email</span></label><input id="rg_email" type="email" autocomplete="username"></div>
+      <div class="fg"><label>كلمة المرور (٨ أحرف على الأقل) <span class="bl">Password (min 8 chars)</span></label><input id="rg_pass" type="password" autocomplete="new-password"></div>
+      <button class="btn btn-navy" onclick="doRegister()">إنشاء الشركة والحساب <span class="bl">Create Company</span></button>
+      <div class="switch-mode" onclick="toggleAuthMode()">لديك حساب؟ سجّل الدخول <span class="bl">/ Login</span></div>
     </div>
   </div>
 </div>
@@ -91,35 +95,81 @@ table.dtbl tr:hover td{background:#f5f8ff;}
   <div class="sidebar">
     <div class="sidebar-brand">
       <div class="brand-name">🏢 نظام الموارد البشرية</div>
+      <div class="brand-sub">Multi-Company HR System</div>
       <div class="brand-sub" id="userLabel"></div>
     </div>
     <select id="companySelect" class="company-select" onchange="switchCompany(this.value)"></select>
     <div class="role-badge" id="roleBadge"></div>
-    <div class="nav-item active" data-page="employees" onclick="showPage('employees')">👥 <span>الموظفون</span></div>
-    <div class="nav-item" data-page="contractors" onclick="showPage('contractors')">🧰 <span>العمالة الخارجية / المقاولين</span></div>
-    <div class="nav-item" data-page="branches" onclick="showPage('branches')">🏬 <span>الفروع</span></div>
-    <div class="nav-item" data-page="payroll" onclick="showPage('payroll')">💰 <span>مسيرات الرواتب</span></div>
-    <div class="nav-item" data-page="advances" onclick="showPage('advances')">💳 <span>السلف والتسويات</span></div>
-    <div class="nav-item" data-page="eos" onclick="showPage('eos')">📜 <span>مكافأة نهاية الخدمة</span></div>
-    <div class="nav-item" data-page="users" onclick="showPage('users')">🔑 <span>المستخدمون والصلاحيات</span></div>
+    <div class="nav-item active" data-page="employees" onclick="showPage('employees')">👥 <span>الموظفون<span class="bl">Employees</span></span></div>
+    <div class="nav-item" data-page="contractors" onclick="showPage('contractors')">🧰 <span>العمالة الخارجية / المقاولين<span class="bl">Contractors</span></span></div>
+    <div class="nav-item" data-page="branches" onclick="showPage('branches')">🏬 <span>الفروع<span class="bl">Branches</span></span></div>
+    <div class="nav-item" data-page="payroll" onclick="showPage('payroll')">💰 <span>مسيرات الرواتب<span class="bl">Payroll</span></span></div>
+    <div class="nav-item" data-page="advances" onclick="showPage('advances')">💳 <span>السلف والتسويات<span class="bl">Advances</span></span></div>
+    <div class="nav-item" data-page="eos" onclick="showPage('eos')">📜 <span>مكافأة نهاية الخدمة<span class="bl">End of Service</span></span></div>
+    <div class="nav-item" data-page="orgchart" onclick="showPage('orgchart')">🗂️ <span>الهيكل التنظيمي<span class="bl">Org Chart</span></span></div>
+    <div class="nav-item" data-page="kpi" onclick="showPage('kpi')">📊 <span>لوحة المؤشرات<span class="bl">KPI Dashboard</span></span></div>
+    <div class="nav-item" data-page="users" onclick="showPage('users')">🔑 <span>المستخدمون والصلاحيات<span class="bl">Users & Roles</span></span></div>
     <div class="nav-bottom">
-      <button class="btn btn-outline btn-sm" style="width:100%;color:#fff;border-color:rgba(255,255,255,.3);" onclick="logout()">تسجيل الخروج</button>
+      <button class="btn btn-outline btn-sm" style="width:100%;color:#fff;border-color:rgba(255,255,255,.3);" onclick="logout()">تسجيل الخروج <span class="bl">Logout</span></button>
     </div>
   </div>
   <div class="main">
     <div class="topbar"><h2 id="pageTitle">الموظفون</h2></div>
 
     <div id="page-employees" class="page-content">
-      <div class="section-card">
+      <div class="section-card" id="empForm">
         <div class="perm-note" id="empPermNote"></div>
-        <div class="form-grid" id="empForm">
+        <input type="hidden" id="e_id">
+        <div style="font-size:11px;font-weight:700;color:var(--navy2);margin-bottom:6px;">🪪 الهوية</div>
+        <div class="form-grid">
           <div class="fg"><label>الاسم (عربي)*</label><input id="e_namear"></div>
-          <div class="fg"><label>القسم</label><input id="e_dept"></div>
+          <div class="fg"><label>الاسم (إنجليزي)</label><input id="e_nameen"></div>
           <div class="fg"><label>الرقم الوظيفي</label><input id="e_empno"></div>
+          <div class="fg"><label>رقم الهوية</label><input id="e_idno"></div>
+          <div class="fg"><label>نوع الهوية</label>
+            <select id="e_idtype"><option value="">—</option><option value="National ID">هوية وطنية</option><option value="Iqama">إقامة</option><option value="Passport">جواز سفر</option></select>
+          </div>
+          <div class="fg"><label>انتهاء الهوية</label><input id="e_idexp" type="date"></div>
+          <div class="fg"><label>رقم الإقامة</label><input id="e_iqama"></div>
+          <div class="fg"><label>رقم الجواز</label><input id="e_passport"></div>
+        </div>
+        <div style="font-size:11px;font-weight:700;color:var(--navy2);margin:12px 0 6px;">👤 البيانات الشخصية</div>
+        <div class="form-grid">
+          <div class="fg"><label>الجنسية</label><input id="e_nat"></div>
+          <div class="fg"><label>الجنس</label>
+            <select id="e_gender"><option value="">—</option><option value="Male">ذكر</option><option value="Female">أنثى</option></select>
+          </div>
+          <div class="fg"><label>تاريخ الميلاد</label><input id="e_dob" type="date"></div>
+          <div class="fg"><label>الجوال</label><input id="e_phone"></div>
+          <div class="fg"><label>البريد الإلكتروني</label><input id="e_email" type="email"></div>
+        </div>
+        <div style="font-size:11px;font-weight:700;color:var(--navy2);margin:12px 0 6px;">💼 التوظيف</div>
+        <div class="form-grid">
+          <div class="fg"><label>القسم</label><input id="e_dept"></div>
+          <div class="fg"><label>المسمى الوظيفي (عربي)</label><input id="e_jobar"></div>
+          <div class="fg"><label>المسمى الوظيفي (إنجليزي)</label><input id="e_joben"></div>
+          <div class="fg"><label>مركز التكلفة</label><input id="e_cc"></div>
+          <div class="fg"><label>الفرع</label><select id="e_branchId"><option value="">—</option></select></div>
+          <div class="fg"><label>تاريخ التعيين (لازم لمكافأة نهاية الخدمة)</label><input id="e_hire" type="date"></div>
+          <div class="fg"><label>الحالة</label>
+            <select id="e_status"><option value="Active">نشط</option><option value="On Leave">إجازة</option><option value="Terminated">منتهي</option></select>
+          </div>
+        </div>
+        <div style="font-size:11px;font-weight:700;color:var(--navy2);margin:12px 0 6px;">💰 الراتب والبنك</div>
+        <div class="form-grid">
           <div class="fg"><label>الأساسي</label><input id="e_basic" type="number"></div>
           <div class="fg"><label>السكن</label><input id="e_housing" type="number"></div>
-          <div class="fg"><label>تاريخ التعيين (لازم لحساب مكافأة نهاية الخدمة)</label><input id="e_hire" type="date"></div>
-          <div class="fg"><label>&nbsp;</label><button class="btn btn-navy" onclick="createEmployee()">+ إضافة موظف</button></div>
+          <div class="fg"><label>بدل النقل</label><input id="e_transport" type="number"></div>
+          <div class="fg"><label>بدلات أخرى</label><input id="e_other" type="number"></div>
+          <div class="fg"><label>البنك</label><input id="e_bank"></div>
+          <div class="fg"><label>IBAN</label><input id="e_iban"></div>
+        </div>
+        <div class="form-grid">
+          <div class="fg" style="grid-column:1/-1;"><label>ملاحظات</label><input id="e_notes"></div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:6px;">
+          <button class="btn btn-navy" id="empSaveBtn" onclick="createEmployee()">+ إضافة موظف</button>
+          <button class="btn btn-outline hide" id="empCancelBtn" onclick="resetEmployeeForm()">إلغاء التعديل</button>
         </div>
       </div>
       <div class="section-card"><div class="tbl-wrap"><table class="dtbl" id="empTable"></table></div></div>
@@ -202,6 +252,15 @@ table.dtbl tr:hover td{background:#f5f8ff;}
         </div>
       </div>
       <div class="section-card"><div class="tbl-wrap"><table class="dtbl" id="eosTable"></table></div></div>
+    </div>
+
+    <div id="page-orgchart" class="page-content hide">
+      <div class="section-card"><div id="orgChartContent"></div></div>
+    </div>
+
+    <div id="page-kpi" class="page-content hide">
+      <div class="stats-row" id="kpiCards" style="display:grid;grid-template-columns:repeat(4,1fr);gap:13px;margin-bottom:16px;"></div>
+      <div class="section-card"><div id="kpiDeptChart"></div></div>
     </div>
 
     <div id="page-users" class="page-content hide">
@@ -330,7 +389,13 @@ function roleLabel(r){
   return { owner:'مالك', admin:'مدير', hr:'موارد بشرية', finance:'مالية', viewer:'مشاهدة فقط' }[r] || r;
 }
 
-const PAGE_TITLES = { employees:'الموظفون', contractors:'العمالة الخارجية / المقاولين', branches:'الفروع', payroll:'مسيرات الرواتب', advances:'السلف والتسويات', eos:'مكافأة نهاية الخدمة', users:'المستخدمون والصلاحيات' };
+const PAGE_TITLES = {
+  employees:'الموظفون / Employees', contractors:'العمالة الخارجية / المقاولين — Contractors',
+  branches:'الفروع / Branches', payroll:'مسيرات الرواتب / Payroll Runs',
+  advances:'السلف والتسويات / Advances & Settlements', eos:'مكافأة نهاية الخدمة / End of Service Gratuity',
+  orgchart:'الهيكل التنظيمي / Organization Chart', kpi:'لوحة المؤشرات / KPI Dashboard',
+  users:'المستخدمون والصلاحيات / Users & Roles',
+};
 
 function showPage(page){
   document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.page === page));
@@ -342,6 +407,8 @@ function showPage(page){
   if (page === 'branches') loadBranches();
   if (page === 'payroll') loadPayrollRuns();
   if (page === 'advances') loadAdvancesPage();
+  if (page === 'orgchart') loadOrgChart();
+  if (page === 'kpi') loadKpiDashboard();
   if (page === 'eos') loadEosPage();
   if (page === 'users') loadUsers();
 }
@@ -359,37 +426,77 @@ function canManage(action){
 
 function esc(v){ return String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
+async function populateBranchSelect(selectId){
+  const sel = document.getElementById(selectId);
+  try{
+    const rows = await api(`/companies/${activeCompanyId}/branches`);
+    sel.innerHTML = '<option value="">—</option>' + rows.map(b => `<option value="${b.id}">${esc(b.namear)} (${esc(b.code)})</option>`).join('');
+  }catch(e){ toast(e.message, true); }
+}
+
 // --- Employees ---
+const EMP_FIELD_IDS = ['e_namear','e_nameen','e_empno','e_idno','e_idtype','e_idexp','e_iqama','e_passport','e_nat','e_gender','e_dob','e_phone','e_email','e_dept','e_jobar','e_joben','e_cc','e_branchId','e_hire','e_status','e_basic','e_housing','e_transport','e_other','e_bank','e_iban','e_notes'];
+let _employeesCache = [];
+
 async function loadEmployees(){
   const canEdit = canManage('manageEmployees');
   document.getElementById('empForm').style.display = canEdit ? '' : 'none';
   document.getElementById('empPermNote').textContent = canEdit ? '' : 'صلاحيتك الحالية للمشاهدة فقط في هذه الشركة.';
+  if (canEdit) await populateBranchSelect('e_branchId');
   try{
     const rows = await api(`/companies/${activeCompanyId}/employees`);
-    const del = canEdit ? '<th>حذف</th>' : '';
+    _employeesCache = rows;
+    const del = canEdit ? '<th>تعديل</th><th>حذف</th>' : '';
     let html = `<thead><tr><th>الرقم الوظيفي</th><th>الاسم</th><th>القسم</th><th>الأساسي</th><th>السكن</th><th>الحالة</th>${del}</tr></thead><tbody>`;
     rows.forEach(e => {
       html += `<tr><td>${esc(e.empno||'-')}</td><td>${esc(e.namear)}</td><td>${esc(e.dept||'-')}</td><td>${esc(e.basic)}</td><td>${esc(e.housing)}</td><td><span class="badge">${esc(e.status)}</span></td>`;
-      if (canEdit) html += `<td><button class="btn btn-red btn-sm" onclick="deleteEmployee(${e.id})">🗑</button></td>`;
+      if (canEdit) html += `<td><button class="btn btn-outline btn-sm" onclick="editEmployee(${e.id})">✏️</button></td><td><button class="btn btn-red btn-sm" onclick="deleteEmployee(${e.id})">🗑</button></td>`;
       html += `</tr>`;
     });
     document.getElementById('empTable').innerHTML = html + '</tbody>';
   }catch(e){ toast(e.message, true); }
 }
+function resetEmployeeForm(){
+  document.getElementById('e_id').value = '';
+  EMP_FIELD_IDS.forEach(id => { const el = document.getElementById(id); if (el) el.value = el.tagName === 'SELECT' ? el.options[0].value : ''; });
+  document.getElementById('e_status').value = 'Active';
+  document.getElementById('empSaveBtn').textContent = '+ إضافة موظف';
+  document.getElementById('empCancelBtn').classList.add('hide');
+}
+function editEmployee(id){
+  const e = _employeesCache.find(x => x.id === id);
+  if (!e) return;
+  document.getElementById('e_id').value = e.id;
+  EMP_FIELD_IDS.forEach(fid => {
+    const key = fid.slice(2);
+    const el = document.getElementById(fid);
+    if (el && e[key] !== undefined && e[key] !== null) el.value = e[key];
+  });
+  document.getElementById('empSaveBtn').textContent = '💾 حفظ التعديلات';
+  document.getElementById('empCancelBtn').classList.remove('hide');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+function collectEmployeeForm(){
+  const body = {};
+  EMP_FIELD_IDS.forEach(fid => {
+    const key = fid.slice(2);
+    const el = document.getElementById(fid);
+    if (!el) return;
+    if (['basic','housing','transport','other'].includes(key)) body[key] = Number(el.value) || 0;
+    else if (key === 'branchId') body.branchId = el.value ? Number(el.value) : null;
+    else body[key] = el.value.trim ? el.value.trim() || null : el.value || null;
+  });
+  return body;
+}
 async function createEmployee(){
   try{
-    const body = {
-      namear: document.getElementById('e_namear').value.trim(),
-      dept: document.getElementById('e_dept').value.trim() || undefined,
-      empno: document.getElementById('e_empno').value.trim() || undefined,
-      basic: Number(document.getElementById('e_basic').value) || 0,
-      housing: Number(document.getElementById('e_housing').value) || 0,
-      hire: document.getElementById('e_hire').value || undefined,
-    };
+    const id = document.getElementById('e_id').value;
+    const body = collectEmployeeForm();
     if (!body.namear) return toast('الاسم مطلوب', true);
-    await api(`/companies/${activeCompanyId}/employees`, { method:'POST', body: JSON.stringify(body) });
-    ['e_namear','e_dept','e_empno','e_basic','e_housing','e_hire'].forEach(id => document.getElementById(id).value = '');
-    toast('تمت إضافة الموظف'); loadEmployees();
+    if (id) await api(`/companies/${activeCompanyId}/employees/${id}`, { method:'PATCH', body: JSON.stringify(body) });
+    else await api(`/companies/${activeCompanyId}/employees`, { method:'POST', body: JSON.stringify(body) });
+    resetEmployeeForm();
+    toast(id ? 'تم حفظ التعديلات' : 'تمت إضافة الموظف'); loadEmployees();
   }catch(e){ toast(e.message, true); }
 }
 async function deleteEmployee(id){
@@ -546,7 +653,7 @@ function renderPayrollTable(){
   const canEdit = canManage('managePayroll');
   const r = currentPayrollRun;
   const del = canEdit ? '<th>حذف</th>' : '';
-  let html = `<thead><tr><th>الاسم</th><th>الأساسي</th><th>السكن</th><th>أيام الغياب</th><th>إضافي</th><th>حوافز</th><th>خصم سلفة</th><th>خصومات أخرى</th><th>إجمالي</th><th>صافي</th>${del}</tr></thead><tbody>`;
+  let html = `<thead><tr><th>الاسم</th><th>الأساسي</th><th>السكن</th><th>أيام الغياب</th><th>إضافي</th><th>حوافز</th><th>خصم سلفة</th><th>خصومات أخرى</th><th>إجمالي</th><th>صافي</th><th>طباعة</th>${del}</tr></thead><tbody>`;
   let totalNet = 0, totalGross = 0;
   (r.lines||[]).forEach(l => {
     totalNet += l.netPay; totalGross += l.grossPay;
@@ -558,13 +665,69 @@ function renderPayrollTable(){
       <td>${editable('advanceDeduction', l.advanceDeduction)}</td>
       <td>${editable('otherDeduction', l.otherDeduction)}</td>
       <td style="font-weight:700;">${esc(l.grossPay)}</td>
-      <td style="font-weight:700;color:var(--green);">${esc(l.netPay)}</td>`;
+      <td style="font-weight:700;color:var(--green);">${esc(l.netPay)}</td>
+      <td><button class="btn btn-outline btn-sm" onclick="printPayrollSlip(${l.id})">🖨️</button></td>`;
     if (canEdit) html += `<td><button class="btn btn-red btn-sm" onclick="deletePayrollLine(${l.id})">🗑</button></td>`;
     html += `</tr>`;
   });
-  html += `<tr class="tot-row"><td colspan="8" style="text-align:left;font-weight:700;">الإجمالي</td><td style="font-weight:700;">${totalGross.toLocaleString()}</td><td style="font-weight:700;color:var(--green);">${totalNet.toLocaleString()}</td>${canEdit?'<td></td>':''}</tr>`;
+  html += `<tr class="tot-row"><td colspan="8" style="text-align:left;font-weight:700;">الإجمالي / Total</td><td style="font-weight:700;">${totalGross.toLocaleString()}</td><td style="font-weight:700;color:var(--green);">${totalNet.toLocaleString()}</td><td></td>${canEdit?'<td></td>':''}</tr>`;
   document.getElementById('prTable').innerHTML = html + '</tbody>';
 }
+function slipRow(labelAr, labelEn, value, negative){
+  if (!value) return '';
+  return `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px dashed #eef0f5;font-size:12px;">
+    <span>${esc(labelAr)}<span class="bl">${esc(labelEn)}</span></span>
+    <span style="font-weight:600;${negative?'color:var(--red);':''}">${negative?'-':''}${n(value)} SAR</span>
+  </div>`;
+}
+async function printPayrollSlip(lineId){
+  const r = currentPayrollRun;
+  const l = (r.lines||[]).find(x => x.id === lineId);
+  if (!l) return;
+  try{
+    const company = await api(`/companies/${activeCompanyId}`);
+    const w = window.open('', '_blank');
+    w.document.write(`<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8">
+    <style>@page{size:A4;margin:12mm;}body{font-family:Arial;font-size:11px;direction:rtl;}
+    .hdr{background:#0f2557;color:#fff;padding:14px 18px;border-radius:8px 8px 0 0;text-align:center;}
+    .hdr h2{font-size:15px;}.hdr .sub{font-size:10px;opacity:.8;margin-top:3px;}
+    .box{border:1px solid #dde3ed;border-radius:0 0 8px 8px;padding:16px 18px;}
+    .info{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;font-size:11.5px;}
+    .info div{background:#f5f8ff;padding:6px 10px;border-radius:6px;}
+    .bl{opacity:.6;font-size:.85em;display:block;}
+    .sec{font-weight:700;color:#1a3a6b;border-bottom:2px solid #eef0f5;padding-bottom:4px;margin:12px 0 6px;}
+    .totals{background:#e8f0ff;border-radius:8px;padding:10px 14px;margin-top:12px;display:flex;justify-content:space-between;font-size:14px;font-weight:800;color:#1a3a6b;}
+    </style></head><body>
+    <div class="hdr"><h2>${esc(company.nameAr)} <span class="bl">${esc(company.nameEn)}</span></h2>
+      <div class="sub">كشف الراتب — ${r.month}/${r.yearG} <span class="bl">Payroll Slip</span></div></div>
+    <div class="box">
+      <div class="info">
+        <div>الاسم<span class="bl">Employee</span><br><strong>${esc(l.namear)}</strong></div>
+        <div>القسم<span class="bl">Department</span><br><strong>${esc(l.dept||'-')}</strong></div>
+      </div>
+      <div class="sec">المستحقات <span class="bl">Earnings</span></div>
+      ${slipRow('الراتب الأساسي','Basic Salary', l.basic)}
+      ${slipRow('بدل السكن','Housing', l.housing)}
+      ${slipRow('بدل النقل','Transport', l.transport)}
+      ${slipRow('بدلات أخرى','Other Allowances', l.other)}
+      ${slipRow('خصم الغياب ('+l.absentDays+' أيام)','Absence Deduction', l.absenceDeduction, true)}
+      ${slipRow('ساعات إضافية','Overtime', l.overtime)}
+      ${slipRow('حوافز','Bonus', l.bonus)}
+      <div class="sec">الخصومات <span class="bl">Deductions</span></div>
+      ${slipRow('التأمينات (الموظف)','GOSI (Employee)', l.gosiEmp, true)}
+      ${slipRow('التأمين الصحي','Health Insurance', l.healthIns, true)}
+      ${slipRow('ضريبة الدخل','Income Tax', l.incomeTax, true)}
+      ${slipRow('اشتراك نقابي','Union Fee', l.unionFee, true)}
+      ${slipRow('خصم سلفة','Advance Deduction', l.advanceDeduction, true)}
+      ${slipRow('خصومات أخرى','Other Deductions', l.otherDeduction, true)}
+      <div class="totals"><span>صافي الراتب <span class="bl">Net Pay</span></span><span>${n(l.netPay)} SAR</span></div>
+    </div>
+    </body></html>`);
+    w.document.close();
+    setTimeout(() => w.print(), 400);
+  }catch(e){ toast(e.message, true); }
+}
+function n(v){ return Number(v||0).toLocaleString('en-US'); }
 async function updatePayrollLine(lineId, field, value){
   try{
     await api(`/companies/${activeCompanyId}/payroll-runs/${currentPayrollRun.id}/lines/${lineId}`, { method:'PATCH', body: JSON.stringify({ [field]: Number(value) || 0 }) });
@@ -694,6 +857,82 @@ async function createEos(){
 async function advanceEosStatus(id, status){
   try{ await api(`/companies/${activeCompanyId}/eos/${id}`, { method:'PATCH', body: JSON.stringify({ status }) }); loadEos(); }
   catch(e){ toast(e.message, true); }
+}
+
+// --- Org Chart ---
+async function loadOrgChart(){
+  try{
+    const rows = await api(`/companies/${activeCompanyId}/employees`);
+    const byDept = {};
+    rows.forEach(e => { const d = e.dept || 'غير محدد / Unassigned'; (byDept[d] = byDept[d] || []).push(e); });
+    const html = Object.entries(byDept).map(([dept, emps]) => `
+      <div style="min-width:220px;border:2px solid var(--navy2);border-radius:10px;overflow:hidden;flex:1;margin-bottom:14px;">
+        <div style="background:var(--navy2);color:#fff;padding:10px 14px;font-size:12px;font-weight:700;display:flex;justify-content:space-between;">
+          <span>${esc(dept)}</span><span>${emps.length}</span>
+        </div>
+        ${emps.map(e => `
+          <div style="display:flex;align-items:center;gap:10px;padding:7px 12px;border-bottom:1px solid #eef0f5;">
+            <div style="width:30px;height:30px;border-radius:50%;background:var(--navy3);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;">${esc((e.namear||'?')[0])}</div>
+            <div style="flex:1;overflow:hidden;">
+              <div style="font-size:12px;font-weight:600;">${esc(e.namear)}</div>
+              <div style="font-size:10px;color:var(--muted);">${esc(e.jobar||e.joben||'')}</div>
+            </div>
+            <span class="badge" style="font-size:9.5px;">${esc(e.empno||'')}</span>
+          </div>`).join('')}
+      </div>`).join('');
+    document.getElementById('orgChartContent').innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:14px;">${html || 'لا يوجد موظفون / No employees'}</div>`;
+  }catch(e){ toast(e.message, true); }
+}
+
+// --- KPI Dashboard ---
+async function loadKpiDashboard(){
+  const n = (v) => Number(v||0).toLocaleString('en-US');
+  try{
+    const [employees, advances, eosRecords] = await Promise.all([
+      api(`/companies/${activeCompanyId}/employees`),
+      api(`/companies/${activeCompanyId}/advances`),
+      api(`/companies/${activeCompanyId}/eos`),
+    ]);
+    const active = employees.filter(e => e.status === 'Active');
+    const totalMonthlyPayroll = active.reduce((s,e) => s + e.basic + e.housing + e.transport + e.other, 0);
+    const avgSalary = active.length ? Math.round(totalMonthlyPayroll / active.length) : 0;
+    const pendingAdvBalance = advances.reduce((s,a) => s + (a.status !== 'settled' ? a.remain : 0), 0);
+    const eosLiability = eosRecords.filter(r => r.status !== 'Paid').reduce((s,r) => s + r.netEos, 0);
+    const saudiCount = employees.filter(e => /سعود|saudi/i.test(e.nat||'')).length;
+    const saudizationPct = employees.length ? Math.round(saudiCount/employees.length*100) : 0;
+    const maleCount = employees.filter(e => e.gender === 'Male').length;
+    const femaleCount = employees.filter(e => e.gender === 'Female').length;
+
+    const cards = [
+      { icon:'👥', label:'إجمالي الموظفين / Headcount', val: employees.length, color:'var(--navy2)' },
+      { icon:'✅', label:'الموظفون النشطون / Active', val: active.length, color:'var(--green)' },
+      { icon:'💰', label:'إجمالي الرواتب الشهرية / Monthly Payroll', val: n(totalMonthlyPayroll) + ' SAR', color:'var(--navy2)' },
+      { icon:'📊', label:'متوسط الراتب / Avg. Package', val: n(avgSalary) + ' SAR', color:'var(--navy2)' },
+      { icon:'💳', label:'رصيد السلف المعلق / Pending Advances', val: n(pendingAdvBalance) + ' SAR', color:'var(--red)' },
+      { icon:'📜', label:'التزام مكافأة نهاية الخدمة / EOS Liability', val: n(eosLiability) + ' SAR', color:'#c07020' },
+      { icon:'🇸🇦', label:'نسبة السعودة / Saudization', val: saudizationPct + '%', color: saudizationPct>=75?'var(--green)':'#c07020' },
+      { icon:'⚧', label:'التنوع (ذكور/إناث) / Gender (M/F)', val: maleCount+' / '+femaleCount, color:'var(--navy2)' },
+    ];
+    document.getElementById('kpiCards').innerHTML = cards.map(c => `
+      <div class="section-card" style="margin-bottom:0;padding:14px;">
+        <div style="font-size:20px;margin-bottom:4px;">${c.icon}</div>
+        <div style="font-size:20px;font-weight:800;color:${c.color};">${c.val}</div>
+        <div style="font-size:10px;font-weight:700;color:var(--muted);margin-top:2px;">${esc(c.label)}</div>
+      </div>`).join('');
+
+    const byDept = {};
+    active.forEach(e => { const d = e.dept || 'Unassigned'; byDept[d] = (byDept[d]||0) + 1; });
+    const max = Math.max(1, ...Object.values(byDept));
+    document.getElementById('kpiDeptChart').innerHTML = `<div style="font-size:12px;font-weight:700;color:var(--navy2);margin-bottom:10px;">التوزيع حسب القسم / Headcount by Department</div>` +
+      Object.entries(byDept).map(([dept,count]) => `
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px;font-size:11.5px;">
+          <span style="min-width:120px;">${esc(dept)}</span>
+          <div style="flex:1;background:#eef0f5;border-radius:3px;height:18px;overflow:hidden;">
+            <div style="height:100%;background:var(--navy3);width:${Math.round(count/max*100)}%;"></div>
+          </div>
+          <span style="min-width:24px;text-align:left;">${count}</span>
+        </div>`).join('');
+  }catch(e){ toast(e.message, true); }
 }
 
 // --- boot ---

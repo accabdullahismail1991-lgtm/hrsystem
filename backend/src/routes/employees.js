@@ -10,11 +10,19 @@ const toApi = (r) => ({
   branchId: r.branch_id,
   empno: r.empno,
   idno: r.idno,
+  idtype: r.idtype,
+  idexp: r.idexp,
+  iqama: r.iqama,
+  passport: r.passport,
   namear: r.namear,
   nameen: r.nameen,
   dept: r.dept,
   jobar: r.jobar,
   joben: r.joben,
+  cc: r.cc,
+  nat: r.nat,
+  gender: r.gender,
+  dob: r.dob,
   basic: Number(r.basic),
   housing: Number(r.housing),
   transport: Number(r.transport),
@@ -28,7 +36,7 @@ const toApi = (r) => ({
   notes: r.notes,
 });
 
-const FIELDS = ['branchId', 'empno', 'idno', 'namear', 'nameen', 'dept', 'jobar', 'joben', 'basic', 'housing', 'transport', 'other', 'status', 'hire', 'phone', 'email', 'bank', 'iban', 'notes'];
+const FIELDS = ['branchId', 'empno', 'idno', 'idtype', 'idexp', 'iqama', 'passport', 'namear', 'nameen', 'dept', 'jobar', 'joben', 'cc', 'nat', 'gender', 'dob', 'basic', 'housing', 'transport', 'other', 'status', 'hire', 'phone', 'email', 'bank', 'iban', 'notes'];
 const COLUMN = { branchId: 'branch_id', hire: 'hire_date' };
 
 function toDb(body) {
