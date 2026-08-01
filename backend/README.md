@@ -111,6 +111,11 @@ DELETE      /api/companies/:id/settlements/:setlId
 
 GET|POST    /api/companies/:id/eos
 PATCH|DELETE /api/companies/:id/eos/:eosId         (status: Pending → Approved → Paid)
+
+GET         /api/companies/:id/employees/export/xlsx
+POST        /api/companies/:id/employees/import/parse    preview only, writes nothing
+POST        /api/companies/:id/employees/import/commit   bulk-creates the reviewed rows
+GET         /api/companies/:id/payroll-runs/:runId/export/xlsx
 ```
 
 Every `/api/companies/:id/...` route requires the caller to hold a role in
@@ -134,11 +139,20 @@ real server-side permission checks. "Add/edit" screens are modal popups
 (matching the original's UI pattern) rather than permanently-inline forms.
 The web UI is labeled bilingually (Arabic/English) throughout. The Gregorian
 → Hijri year on payroll runs auto-fills via the browser's built-in Islamic
-calendar.
+calendar. Employees can be exported to / imported from `.xlsx` (preview
+before commit), and every printable report (payroll slip, payroll summary)
+opens with its own Print and Export-to-Excel toolbar rather than relying
+only on an auto-print timer.
+
+Note on the Excel library: the original app loaded SheetJS from a CDN,
+but the npm-published `xlsx` package has known unpatched high-severity
+vulnerabilities (prototype pollution, ReDoS — both directly triggerable
+by a malicious uploaded file, exactly our attack surface). This backend
+uses `exceljs` instead, which has no such issue.
 
 Still only in `../index.html` (single-company, `localStorage`-based): the
-compliance report, backup/restore, Excel import/export, and the
-print-settings/theme customization screen.
+compliance report, backup/restore, and the print-settings/theme
+customization screen.
 
 ## Deployment
 

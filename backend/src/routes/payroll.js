@@ -1,4 +1,5 @@
 const express = require('express');
+const ExcelJS = require('exceljs');
 const db = require('../db');
 const { requireAuth, requireCompanyRole } = require('../middleware/auth');
 const { calcPayrollLine } = require('../payrollCalc');
@@ -83,6 +84,37 @@ router.post('/', requireCompanyRole('managePayroll'), async (req, res) => {
   });
   const created = await db('payroll_runs').where({ id }).first();
   res.status(201).json(runToApi(created));
+});
+
+router.get('/:runId/export/xlsx', requireCompanyRole('view'), async (req, res) => {
+  const run = await assertRun(req.companyId, req.params.runId);
+  const lines = await db('payroll_lines').where({ payroll_run_id: run.id }).orderBy('namear_snapshot');
+
+  const workbook = new ExcelJS.Workbook();
+  const sheet = workbook.addWorksheet('Payroll Summary');
+  sheet.columns = [
+    { key: 'namear', header: 'الاسم / Name', width: 24 },
+    { key: 'dept', header: 'القسم / Dept', width: 18 },
+    { key: 'basic', header: 'الأساسي / Basic', width: 12 },
+    { key: 'housing', header: 'السكن / Housing', width: 12 },
+    { key: 'overtime', header: 'إضافي / Overtime', width: 12 },
+    { key: 'grossPay', header: 'إجمالي / Gross', width: 14 },
+    { key: 'totalDeductions', header: 'الخصومات / Deductions', width: 14 },
+    { key: 'netPay', header: 'الصافي / Net', width: 14 },
+  ];
+  sheet.getRow(1).font = { bold: true };
+  lines.forEach((l) => {
+    sheet.addRow({
+      namear: l.namear_snapshot, dept: l.dept_snapshot,
+      basic: Number(l.basic), housing: Number(l.housing), overtime: Number(l.overtime),
+      grossPay: Number(l.gross_pay), totalDeductions: Number(l.total_deductions), netPay: Number(l.net_pay),
+    });
+  });
+
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  res.setHeader('Content-Disposition', `attachment; filename="payroll-${run.month}-${run.year_g}.xlsx"`);
+  await workbook.xlsx.write(res);
+  res.end();
 });
 
 router.get('/:runId', requireCompanyRole('view'), async (req, res) => {

@@ -134,9 +134,26 @@ table.dtbl tr:hover td{background:#f5f8ff;}
     <div id="page-employees" class="page-content">
       <div class="section-card">
         <div class="perm-note" id="empPermNote"></div>
-        <button class="btn btn-navy" id="empAddBtn" onclick="openEmployeeModal()">+ إضافة موظف <span class="bl">Add Employee</span></button>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-navy" id="empAddBtn" onclick="openEmployeeModal()">+ إضافة موظف <span class="bl">Add Employee</span></button>
+          <button class="btn btn-outline" onclick="exportEmployeesExcel()">📤 تصدير Excel <span class="bl">Export</span></button>
+          <button class="btn btn-outline" id="empImportBtn" onclick="document.getElementById('empImportInput').click()">📥 استيراد Excel <span class="bl">Import</span></button>
+          <input type="file" id="empImportInput" accept=".xlsx" style="display:none" onchange="handleEmployeeImportFile(this)">
+        </div>
       </div>
       <div class="section-card"><div class="tbl-wrap"><table class="dtbl" id="empTable"></table></div></div>
+    </div>
+
+    <div class="overlay" id="importModalOverlay">
+      <div class="modal">
+        <div class="modal-head"><h3>📥 معاينة الاستيراد <span class="bl">Import Preview</span></h3><button class="close-btn" onclick="closeModal('importModalOverlay')">✕</button></div>
+        <p id="importCount" style="font-size:12px;color:var(--muted);margin-bottom:10px;"></p>
+        <div class="tbl-wrap" id="importPreviewTable" style="max-height:50vh;"></div>
+        <div style="display:flex;gap:8px;margin-top:14px;">
+          <button class="btn btn-navy" onclick="commitEmployeeImport()">✅ تأكيد الاستيراد <span class="bl">Confirm Import</span></button>
+          <button class="btn btn-outline" onclick="closeModal('importModalOverlay')">إلغاء <span class="bl">Cancel</span></button>
+        </div>
+      </div>
     </div>
 
     <div class="overlay" id="empModalOverlay">
@@ -558,6 +575,7 @@ let _attachments = [];
 async function loadEmployees(){
   const canEdit = canManage('manageEmployees');
   document.getElementById('empAddBtn').style.display = canEdit ? '' : 'none';
+  document.getElementById('empImportBtn').style.display = canEdit ? '' : 'none';
   document.getElementById('empPermNote').textContent = canEdit ? '' : 'صلاحيتك الحالية للمشاهدة فقط في هذه الشركة.';
   try{
     const rows = await api(`/companies/${activeCompanyId}/employees`);
@@ -665,6 +683,48 @@ async function createEmployee(){
 async function deleteEmployee(id){
   try{ await api(`/companies/${activeCompanyId}/employees/${id}`, { method:'DELETE' }); loadEmployees(); }
   catch(e){ toast(e.message, true); }
+}
+
+// --- Excel Import / Export ---
+async function exportEmployeesExcel(){
+  try{
+    const res = await fetch(`${API}/companies/${activeCompanyId}/employees/export/xlsx`, { headers: { Authorization: 'Bearer ' + token } });
+    if (!res.ok) throw new Error('فشل التصدير / Export failed');
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'employees.xlsx';
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  }catch(e){ toast(e.message, true); }
+}
+let _importRows = [];
+function handleEmployeeImportFile(input){
+  const file = input.files?.[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async () => {
+    try{
+      const data = await api(`/companies/${activeCompanyId}/employees/import/parse`, { method:'POST', body: JSON.stringify({ fileBase64: reader.result }) });
+      _importRows = data.rows;
+      if (!_importRows.length) return toast('لم يتم العثور على صفوف صالحة / No valid rows found', true);
+      document.getElementById('importCount').textContent = `تم العثور على ${_importRows.length} موظف / Found ${_importRows.length} employees`;
+      let html = `<table class="dtbl"><thead><tr><th>#</th><th>الاسم</th><th>القسم</th><th>الأساسي</th><th>السكن</th></tr></thead><tbody>`;
+      _importRows.forEach((r,i) => { html += `<tr><td>${i+1}</td><td>${esc(r.namear)}</td><td>${esc(r.dept||'-')}</td><td>${esc(r.basic)}</td><td>${esc(r.housing)}</td></tr>`; });
+      document.getElementById('importPreviewTable').innerHTML = html + '</tbody></table>';
+      openModal('importModalOverlay');
+    }catch(e){ toast(e.message, true); }
+  };
+  reader.readAsDataURL(file);
+  input.value = '';
+}
+async function commitEmployeeImport(){
+  try{
+    const data = await api(`/companies/${activeCompanyId}/employees/import/commit`, { method:'POST', body: JSON.stringify({ rows: _importRows }) });
+    closeModal('importModalOverlay');
+    toast(`تم استيراد ${data.created} موظف / Imported ${data.created} employees`);
+    loadEmployees();
+  }catch(e){ toast(e.message, true); }
 }
 
 // --- Contractors ---
@@ -937,7 +997,14 @@ async function printPayrollSlip(lineId){
     .bl{opacity:.6;font-size:.85em;display:block;}
     .sec{font-weight:700;color:#1a3a6b;border-bottom:2px solid #eef0f5;padding-bottom:4px;margin:12px 0 6px;}
     .totals{background:#e8f0ff;border-radius:8px;padding:10px 14px;margin-top:12px;display:flex;justify-content:space-between;font-size:14px;font-weight:800;color:#1a3a6b;}
+    .toolbar{display:flex;gap:8px;justify-content:center;margin-bottom:12px;}
+    .toolbar button{padding:8px 16px;border:none;border-radius:6px;cursor:pointer;font-size:12.5px;font-weight:600;font-family:inherit;}
+    .btn-print{background:#0f2557;color:#fff;}
+    @media print{.toolbar{display:none;}}
     </style></head><body>
+    <div class="toolbar">
+      <button class="btn-print" onclick="window.print()">🖨️ طباعة / حفظ PDF <span class="bl">Print / Save as PDF</span></button>
+    </div>
     <div class="hdr">${company.logoDataUrl?`<img src="${company.logoDataUrl}">`:''}<h2>${esc(company.nameAr)} <span class="bl">${esc(company.nameEn)}</span></h2>
       <div class="sub">كشف الراتب — ${r.month}/${r.yearG} <span class="bl">Payroll Slip</span></div></div>
     <div class="box">
@@ -968,6 +1035,19 @@ async function printPayrollSlip(lineId){
   }catch(e){ toast(e.message, true); }
 }
 function n(v){ return Number(v||0).toLocaleString('en-US'); }
+// Called from the payroll-summary popup window (window.opener.exportPayrollSummaryExcel(...)).
+async function exportPayrollSummaryExcel(runId){
+  try{
+    const res = await fetch(`${API}/companies/${activeCompanyId}/payroll-runs/${runId}/export/xlsx`, { headers: { Authorization: 'Bearer ' + token } });
+    if (!res.ok) throw new Error('فشل التصدير / Export failed');
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'payroll-summary.xlsx';
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  }catch(e){ toast(e.message, true); }
+}
 async function printPayrollSummary(){
   const r = currentPayrollRun;
   if (!r || !(r.lines||[]).length) return toast('لا توجد بيانات في هذه المسيرة', true);
@@ -994,7 +1074,16 @@ async function printPayrollSummary(){
     .sigs{display:flex;justify-content:space-around;margin-top:30px;}
     .sig{text-align:center;font-size:9pt;}
     .sig .line{border-bottom:1.5px solid #333;width:160px;height:30px;margin-bottom:4px;}
+    .toolbar{display:flex;gap:8px;justify-content:center;margin-bottom:12px;}
+    .toolbar button{padding:8px 16px;border:none;border-radius:6px;cursor:pointer;font-size:11.5pt;font-weight:600;font-family:inherit;}
+    .btn-print{background:#0f2557;color:#fff;}
+    .btn-xlsx{background:#1a6b3a;color:#fff;}
+    @media print{.toolbar{display:none;}}
     </style></head><body>
+    <div class="toolbar">
+      <button class="btn-print" onclick="window.print()">🖨️ طباعة / حفظ PDF <span class="bl">Print / Save as PDF</span></button>
+      <button class="btn-xlsx" onclick="window.opener.exportPayrollSummaryExcel(${r.id})">📤 تصدير Excel <span class="bl">Export Excel</span></button>
+    </div>
     <h2>${esc(company.nameAr)} <span class="bl">${esc(company.nameEn)}</span></h2>
     <div class="sub">ملخص مسيرة الرواتب <span class="bl">Payroll Summary</span> — ${r.month}/${r.yearG} ${r.yearH?('هـ'+esc(r.yearH)):''} — عدد الموظفين <span class="bl">Employees</span>: ${r.lines.length}</div>
     <table><thead><tr><th>#</th><th>الاسم<span class="bl">Name</span></th><th>القسم<span class="bl">Dept</span></th>
