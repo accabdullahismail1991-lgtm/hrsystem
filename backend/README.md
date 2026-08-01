@@ -171,6 +171,18 @@ database failed. Fixed by widening the column to unlimited text
 (migration `20240107000000_fix_logo_column_length.js`); verified against
 a real Postgres instance, not just SQLite.
 
+The payroll slip print now uses the exact same markup/CSS classes as the
+original app's `buildSlipHtml` (`.slip`, `.slip-hdr`, `.slip-info-row`,
+`.slip-body`/`.slip-sec`, `.slip-totals`, `.slip-footer`, etc., themed
+from the company's selected color preset) rather than an approximation,
+and payroll lines now snapshot empno/idno/cost-center alongside
+name/department — shown on both the payroll table and the slip/summary
+prints. The EOS reason dropdown covers all six original options
+(termination, contract end, resignation, mutual agreement, death,
+disability) instead of just two; the calculation logic already handled
+all six identically to the original (Art. 84 for resignation, Art. 87
+for everything else) — only the UI was missing the extra options.
+
 Still only in `../index.html` (single-company, `localStorage`-based):
 backup/restore.
 

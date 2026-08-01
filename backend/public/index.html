@@ -348,7 +348,14 @@ table.dtbl tr:hover td{background:#f5f8ff;}
           <div class="fg"><label>الموظف*</label><select id="eos_employeeId"></select></div>
           <div class="fg"><label>تاريخ انتهاء الخدمة*</label><input id="eos_endDate" type="date"></div>
           <div class="fg"><label>السبب*</label>
-            <select id="eos_reason"><option value="terminated">إنهاء خدمة / Termination</option><option value="resigned">استقالة / Resignation</option></select>
+            <select id="eos_reason">
+              <option value="terminated">فصل من صاحب العمل / Termination by Employer (Art. 87)</option>
+              <option value="contract_end">انتهاء عقد / Contract Ended (Art. 87)</option>
+              <option value="resigned">استقالة / Resignation (Art. 84)</option>
+              <option value="mutual">اتفاق طرفين / Mutual Agreement (Art. 87)</option>
+              <option value="death">وفاة / Death (Art. 87)</option>
+              <option value="disability">عجز / Disability (Art. 87)</option>
+            </select>
           </div>
           <div class="fg"><label>&nbsp;</label><button class="btn btn-navy" onclick="createEos()">+ احتساب المكافأة</button></div>
         </div>
@@ -1052,12 +1059,12 @@ function renderPayrollTable(){
   const canEdit = canManage('managePayroll');
   const r = currentPayrollRun;
   const del = canEdit ? '<th>حذف</th>' : '';
-  let html = `<thead><tr><th>الاسم</th><th>الأساسي</th><th>السكن</th><th>أيام الغياب</th><th>إضافي</th><th>حوافز</th><th>خصم سلفة</th><th>خصومات أخرى</th><th>إجمالي</th><th>صافي</th><th>طباعة</th>${del}</tr></thead><tbody>`;
+  let html = `<thead><tr><th>الرقم الوظيفي</th><th>الاسم</th><th>القسم</th><th>الفرع/مركز التكلفة</th><th>الأساسي</th><th>السكن</th><th>أيام الغياب</th><th>إضافي</th><th>حوافز</th><th>خصم سلفة</th><th>خصومات أخرى</th><th>إجمالي</th><th>صافي</th><th>طباعة</th>${del}</tr></thead><tbody>`;
   let totalNet = 0, totalGross = 0;
   (r.lines||[]).forEach(l => {
     totalNet += l.netPay; totalGross += l.grossPay;
     const editable = canEdit ? (field, val) => `<input type="number" value="${val}" style="width:65px;" onchange="updatePayrollLine(${l.id}, '${field}', this.value)">` : (field, val) => esc(val);
-    html += `<tr><td style="text-align:right;">${esc(l.namear)}</td><td>${esc(l.basic)}</td><td>${esc(l.housing)}</td>
+    html += `<tr><td style="font-family:monospace;">${esc(l.empno||'-')}</td><td style="text-align:right;">${esc(l.namear)}</td><td>${esc(l.dept||'-')}</td><td>${esc(l.cc||'-')}</td><td>${esc(l.basic)}</td><td>${esc(l.housing)}</td>
       <td>${editable('absentDays', l.absentDays)}</td>
       <td>${editable('overtime', l.overtime)}</td>
       <td>${editable('bonus', l.bonus)}</td>
@@ -1069,15 +1076,15 @@ function renderPayrollTable(){
     if (canEdit) html += `<td><button class="btn btn-red btn-sm" onclick="deletePayrollLine(${l.id})">🗑</button></td>`;
     html += `</tr>`;
   });
-  html += `<tr class="tot-row"><td colspan="8" style="text-align:left;font-weight:700;">الإجمالي / Total</td><td style="font-weight:700;">${totalGross.toLocaleString()}</td><td style="font-weight:700;color:var(--green);">${totalNet.toLocaleString()}</td><td></td>${canEdit?'<td></td>':''}</tr>`;
+  html += `<tr class="tot-row"><td colspan="10" style="text-align:left;font-weight:700;">الإجمالي / Total</td><td style="font-weight:700;">${totalGross.toLocaleString()}</td><td style="font-weight:700;color:var(--green);">${totalNet.toLocaleString()}</td><td></td>${canEdit?'<td></td>':''}</tr>`;
   document.getElementById('prTable').innerHTML = html + '</tbody>';
 }
-function slipRow(labelAr, labelEn, value, negative){
-  if (!value) return '';
-  return `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px dashed #eef0f5;font-size:12px;">
-    <span>${esc(labelAr)}<span class="bl">${esc(labelEn)}</span></span>
-    <span style="font-weight:600;${negative?'color:var(--red);':''}">${negative?'-':''}${n(value)} SAR</span>
-  </div>`;
+// Same markup/classes as the original app's buildSlipHtml, so the printed
+// slip looks the same, just fed from the API instead of localStorage.
+function sr(arL, enL, val, force){
+  const z = !val && !force;
+  return `<div class="srow"><span class="srow-lbl">${esc(arL)}<span class="srow-lbl-en">${esc(enL)}</span></span>
+    <span class="srow-val${z?' z':''}">${n(val||0)}</span></div>`;
 }
 async function printPayrollSlip(lineId){
   const r = currentPayrollRun;
@@ -1085,50 +1092,106 @@ async function printPayrollSlip(lineId){
   if (!l) return;
   try{
     const company = await api(`/companies/${activeCompanyId}`);
+    const tc = THEME_PRESETS[company.theme] || THEME_PRESETS.navy;
+    const payBadge = l.payMethod === 'Cash'
+      ? `<span style="background:#ffeedd;color:#c0602b;padding:2px 8px;border-radius:8px;font-size:7.5pt;font-weight:600;">Cash / نقدي</span>`
+      : `<span style="background:#ddeeff;color:${tc.navy2};padding:2px 8px;border-radius:8px;font-size:7.5pt;font-weight:600;">Transfer / تحويل</span>`;
+    const logoHtml = company.printShowLogo!==false && company.logoDataUrl
+      ? `<img src="${company.logoDataUrl}" class="s-logo" alt="logo">`
+      : `<div class="s-logo" style="display:flex;align-items:center;justify-content:center;font-size:9pt;color:rgba(255,255,255,.4);">LOGO</div>`;
+
     const w = window.open('', '_blank');
     w.document.write(`<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8">
-    <style>@page{size:A4;margin:12mm;}body{font-family:Arial;font-size:11px;direction:rtl;}
-    .hdr{background:#0f2557;color:#fff;padding:14px 18px;border-radius:8px 8px 0 0;text-align:center;}
-    .hdr img{max-height:44px;max-width:140px;object-fit:contain;margin-bottom:6px;background:#fff;border-radius:4px;padding:3px;}
-    .hdr h2{font-size:15px;}.hdr .sub{font-size:10px;opacity:.8;margin-top:3px;}
-    .box{border:1px solid #dde3ed;border-radius:0 0 8px 8px;padding:16px 18px;}
-    .info{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;font-size:11.5px;}
-    .info div{background:#f5f8ff;padding:6px 10px;border-radius:6px;}
-    .bl{opacity:.6;font-size:.85em;display:block;}
-    .sec{font-weight:700;color:#1a3a6b;border-bottom:2px solid #eef0f5;padding-bottom:4px;margin:12px 0 6px;}
-    .totals{background:#e8f0ff;border-radius:8px;padding:10px 14px;margin-top:12px;display:flex;justify-content:space-between;font-size:14px;font-weight:800;color:#1a3a6b;}
+    <style>@page{size:A4;margin:8mm;}*{margin:0;padding:0;box-sizing:border-box;}body{font-family:Arial;direction:rtl;background:#fff;}
+    .bl{opacity:.6;font-size:.85em;}
+    .slip{border:1.5px solid ${tc.navy2};font-size:9.5pt;direction:rtl;background:#fff;}
+    .slip-hdr{display:flex;align-items:center;justify-content:space-between;background:${tc.navy2};color:#fff;padding:6px 12px;}
+    .s-co-ar{font-size:11pt;font-weight:700;}.s-co-en{font-size:7.5pt;opacity:.8;}
+    .s-title-ar{font-size:10pt;font-weight:700;}.s-title-en{font-size:7pt;opacity:.8;}
+    .s-logo{height:54px;object-fit:contain;border:1px solid rgba(255,255,255,.3);border-radius:3px;}
+    .slip-info-row{display:grid;grid-template-columns:repeat(7,1fr);border-bottom:1px solid #c8d4e8;}
+    .sic{padding:3px 7px;border-left:1px solid #c8d4e8;}.sic:last-child{border-left:none;}
+    .sic-lbl{font-size:6.5pt;color:#777;}.sic-val{font-size:9pt;font-weight:700;}
+    .slip-body{display:grid;grid-template-columns:1fr 1fr;}
+    .slip-sec{padding:5px 9px;}.slip-sec+.slip-sec{border-right:1.5px solid ${tc.navy2};}
+    .sec-ttl{font-size:7.5pt;font-weight:700;color:${tc.navy2};background:#e8f0ff;padding:2px 6px;margin-bottom:4px;display:flex;justify-content:space-between;}
+    .srow{display:flex;justify-content:space-between;padding:2px 3px;border-bottom:1px dashed #e5e9f0;font-size:8.5pt;}
+    .srow:last-child{border-bottom:none;}.srow-lbl{color:#444;}.srow-lbl-en{font-size:6.5pt;color:#999;display:block;}
+    .srow-val{font-weight:600;min-width:58px;text-align:left;direction:ltr;}.srow-val.z{color:#bbb;}
+    .slip-totals{display:grid;grid-template-columns:1fr 1fr 1fr;border-top:1.5px solid ${tc.navy2};background:#f0f4fc;}
+    .stc{padding:4px 9px;text-align:center;border-left:1px solid #c8d4e8;}.stc:last-child{border-left:none;}
+    .stc-lbl{font-size:7pt;color:#555;}.stc-lbl-en{font-size:6.5pt;color:#999;display:block;}
+    .stc-amt{font-size:11pt;font-weight:700;}.stc-amt.g{color:${tc.green};}.stc-amt.d{color:${tc.red};}.stc-amt.n{color:${tc.navy2};}
+    .slip-footer{display:grid;grid-template-columns:1fr 1fr 1fr;padding:5px 10px;gap:8px;border-top:1px solid #c8d4e8;}
+    .sfc{display:flex;flex-direction:column;gap:2px;}.sfc-lbl{font-size:7.5pt;color:#666;}.sfc-lbl-en{font-size:6.5pt;color:#aaa;}
+    .sfc-sig{border-bottom:1px solid #999;min-height:17px;margin-top:2px;font-size:8.5pt;padding-bottom:2px;}
     .toolbar{display:flex;gap:8px;justify-content:center;margin-bottom:12px;}
-    .toolbar button{padding:8px 16px;border:none;border-radius:6px;cursor:pointer;font-size:12.5px;font-weight:600;font-family:inherit;}
-    .btn-print{background:#0f2557;color:#fff;}
+    .toolbar button{padding:8px 16px;border:none;border-radius:6px;cursor:pointer;font-size:12.5px;font-weight:600;font-family:inherit;background:${tc.navy2};color:#fff;}
     @media print{.toolbar{display:none;}}
     </style></head><body>
-    <div class="toolbar">
-      <button class="btn-print" onclick="window.print()">🖨️ طباعة / حفظ PDF <span class="bl">Print / Save as PDF</span></button>
-    </div>
+    <div class="toolbar"><button onclick="window.print()">🖨️ طباعة / حفظ PDF <span class="bl">Print / Save as PDF</span></button></div>
     ${customHeaderHtml(company)}
-    <div class="hdr">${company.printShowLogo!==false && company.logoDataUrl?`<img src="${company.logoDataUrl}">`:''}<h2>${esc(company.nameAr)} <span class="bl">${esc(company.nameEn)}</span></h2>
-      <div class="sub">كشف الراتب — ${r.month}/${r.yearG} <span class="bl">Payroll Slip</span></div></div>
-    <div class="box">
-      <div class="info">
-        <div>الاسم<span class="bl">Employee</span><br><strong>${esc(l.namear)}</strong></div>
-        <div>القسم<span class="bl">Department</span><br><strong>${esc(l.dept||'-')}</strong></div>
+    <div class="slip">
+      <div class="slip-hdr">
+        ${logoHtml}
+        <div style="flex:1;text-align:center;padding:0 10px;">
+          <div class="s-title-ar">كشف الراتب — ${r.month}/${r.yearG}${r.yearH?' هـ'+esc(r.yearH):''}</div>
+          <div class="s-title-en">Payroll Slip</div>
+        </div>
+        <div style="text-align:left;">
+          <div class="s-co-ar">${esc(company.nameAr)}</div>
+          <div class="s-co-en">${esc(company.nameEn)}</div>
+        </div>
       </div>
-      <div class="sec">المستحقات <span class="bl">Earnings</span></div>
-      ${slipRow('الراتب الأساسي','Basic Salary', l.basic)}
-      ${slipRow('بدل السكن','Housing', l.housing)}
-      ${slipRow('بدل النقل','Transport', l.transport)}
-      ${slipRow('بدلات أخرى','Other Allowances', l.other)}
-      ${slipRow('خصم الغياب ('+l.absentDays+' أيام)','Absence Deduction', l.absenceDeduction, true)}
-      ${slipRow('ساعات إضافية','Overtime', l.overtime)}
-      ${slipRow('حوافز','Bonus', l.bonus)}
-      <div class="sec">الخصومات <span class="bl">Deductions</span></div>
-      ${slipRow('التأمينات (الموظف)','GOSI (Employee)', l.gosiEmp, true)}
-      ${slipRow('التأمين الصحي','Health Insurance', l.healthIns, true)}
-      ${slipRow('ضريبة الدخل','Income Tax', l.incomeTax, true)}
-      ${slipRow('اشتراك نقابي','Union Fee', l.unionFee, true)}
-      ${slipRow('خصم سلفة','Advance Deduction', l.advanceDeduction, true)}
-      ${slipRow('خصومات أخرى','Other Deductions', l.otherDeduction, true)}
-      <div class="totals"><span>صافي الراتب <span class="bl">Net Pay</span></span><span>${n(l.netPay)} SAR</span></div>
+      <div class="slip-info-row">
+        <div class="sic"><div class="sic-lbl">Emp. No. / الرقم الوظيفي</div><div class="sic-val" style="font-family:monospace;">${esc(l.empno||'-')}</div></div>
+        <div class="sic"><div class="sic-lbl">ID No. / رقم الهوية</div><div class="sic-val" style="font-family:monospace;">${esc(l.idno||'-')}</div></div>
+        <div class="sic" style="grid-column:span 2;"><div class="sic-lbl">Employee / الموظف</div><div class="sic-val">${esc(l.namear)}</div></div>
+        <div class="sic"><div class="sic-lbl">Dept / الإدارة</div><div class="sic-val">${esc(l.dept||'-')}</div></div>
+        <div class="sic" style="grid-column:span 2;"><div class="sic-lbl">Branch / Cost Center — الفرع / مركز التكلفة</div><div class="sic-val">${esc(l.cc||'-')}</div></div>
+      </div>
+      <div class="slip-info-row" style="border-top:1px solid #c8d4e8;grid-template-columns:repeat(4,1fr);">
+        <div class="sic"><div class="sic-lbl">Work Days</div><div class="sic-val">${r.workDays}</div></div>
+        <div class="sic"><div class="sic-lbl">Absent / غياب</div><div class="sic-val" style="color:${tc.red};">${l.absentDays}</div></div>
+        <div class="sic"><div class="sic-lbl">Present / حضور</div><div class="sic-val" style="color:${tc.green};">${r.workDays-l.absentDays}</div></div>
+        <div class="sic"><div class="sic-lbl">Absence Ded. / خصم الغياب</div><div class="sic-val" style="color:${tc.red};">${l.absentDays>0?'-'+n(l.absenceDeduction):'—'}</div></div>
+      </div>
+      <div class="slip-body">
+        <div class="slip-sec">
+          <div class="sec-ttl"><span>المستحقات</span><span>Earnings</span></div>
+          ${sr('الراتب الأساسي','Basic Salary', l.basic)}
+          ${sr('بدل السكن','Housing Allowance', l.housing)}
+          ${sr('بدل النقل','Transport Allow.', l.transport)}
+          ${sr('بدلات أخرى','Other Allowances', l.other)}
+          ${l.absentDays>0?sr('خصم الغياب ('+l.absentDays+' أيام)','Absence Ded. ('+l.absentDays+' days)', -l.absenceDeduction, true):''}
+          ${sr('ساعات إضافية','Overtime', l.overtime)}
+          ${sr('حوافز','Bonus', l.bonus)}
+        </div>
+        <div class="slip-sec">
+          <div class="sec-ttl"><span>الخصميات</span><span>Deductions</span></div>
+          ${sr('التأمينات (الموظف)','GOSI (Employee)', l.gosiEmp)}
+          ${sr('التأمين الصحي','Health Insurance', l.healthIns)}
+          ${sr('ضريبة الدخل','Income Tax', l.incomeTax)}
+          ${sr('اشتراك نقابي','Union Fee', l.unionFee)}
+          ${sr('السلف','Cash Advance', l.advanceDeduction)}
+          ${sr('خصومات أخرى','Other Deductions', l.otherDeduction)}
+          <div class="srow" style="margin-top:5px;">
+            <span class="srow-lbl">طريقة الدفع<span class="srow-lbl-en">Payment Method</span></span>
+            <span>${payBadge}</span>
+          </div>
+          ${l.note?`<div class="srow"><span class="srow-lbl">ملاحظات<span class="srow-lbl-en">Notes</span></span><span class="srow-val" style="direction:rtl;text-align:right;">${esc(l.note)}</span></div>`:''}
+        </div>
+      </div>
+      <div class="slip-totals">
+        <div class="stc"><div class="stc-lbl">إجمالي الراتب<span class="stc-lbl-en">Gross Pay</span></div><div class="stc-amt g">${n(l.grossPay)} SAR</div></div>
+        <div class="stc"><div class="stc-lbl">إجمالي الخصومات<span class="stc-lbl-en">Total Deductions</span></div><div class="stc-amt d">${n(l.totalDeductions)} SAR</div></div>
+        <div class="stc"><div class="stc-lbl">صافي الراتب<span class="stc-lbl-en">Net Pay</span></div><div class="stc-amt n">${n(l.netPay)} SAR</div></div>
+      </div>
+      <div class="slip-footer">
+        <div class="sfc"><span class="sfc-lbl">الاسم<span class="sfc-lbl-en">Name:</span></span><div class="sfc-sig">${esc(l.namear)}</div></div>
+        <div class="sfc"><span class="sfc-lbl">التوقيع<span class="sfc-lbl-en">Signature:</span></span><div class="sfc-sig">&nbsp;</div></div>
+        <div class="sfc"><span class="sfc-lbl">التاريخ<span class="sfc-lbl-en">Date:</span></span><div class="sfc-sig">&nbsp;/&nbsp;/${r.yearG}</div></div>
+      </div>
     </div>
     ${customFooterHtml(company)}
     </body></html>`);
@@ -1166,7 +1229,7 @@ async function printPayrollSummary(){
     let totGross = 0, totDed = 0, totNet = 0;
     const rows = r.lines.map((l,i) => {
       totGross += l.grossPay; totDed += l.totalDeductions; totNet += l.netPay;
-      return `<tr><td>${i+1}</td><td style="text-align:right;">${esc(l.namear)}</td><td>${esc(l.dept||'-')}</td>
+      return `<tr><td>${i+1}</td><td style="font-family:monospace;">${esc(l.empno||'-')}</td><td style="text-align:right;">${esc(l.namear)}</td><td>${esc(l.dept||'-')}</td><td>${esc(l.cc||'-')}</td>
         <td>${n(l.basic)}</td><td>${n(l.housing)}</td><td>${n(l.overtime)}</td>
         <td style="font-weight:700;">${n(l.grossPay)}</td><td>${n(l.totalDeductions)}</td>
         <td style="font-weight:700;color:#1a6b3a;">${n(l.netPay)}</td></tr>`;
@@ -1198,11 +1261,11 @@ async function printPayrollSummary(){
     ${company.printShowLogo!==false && company.logoDataUrl?`<div style="text-align:center;"><img src="${company.logoDataUrl}" style="max-height:44px;margin-bottom:6px;"></div>`:''}
     <h2>${esc(company.nameAr)} <span class="bl">${esc(company.nameEn)}</span></h2>
     <div class="sub">ملخص مسيرة الرواتب <span class="bl">Payroll Summary</span> — ${r.month}/${r.yearG} ${r.yearH?('هـ'+esc(r.yearH)):''} — عدد الموظفين <span class="bl">Employees</span>: ${r.lines.length}</div>
-    <table><thead><tr><th>#</th><th>الاسم<span class="bl">Name</span></th><th>القسم<span class="bl">Dept</span></th>
+    <table><thead><tr><th>#</th><th>الرقم الوظيفي<span class="bl">Emp No.</span></th><th>الاسم<span class="bl">Name</span></th><th>القسم<span class="bl">Dept</span></th><th>الفرع/مركز التكلفة<span class="bl">Branch/CC</span></th>
       <th>الأساسي<span class="bl">Basic</span></th><th>السكن<span class="bl">Housing</span></th><th>إضافي<span class="bl">OT</span></th>
       <th>إجمالي<span class="bl">Gross</span></th><th>الخصومات<span class="bl">Deductions</span></th><th>الصافي<span class="bl">Net</span></th></tr></thead>
     <tbody>${rows}
-      <tr class="tot"><td colspan="6" style="text-align:left;">الإجمالي <span class="bl">Total</span></td><td>${n(totGross)}</td><td>${n(totDed)}</td><td>${n(totNet)}</td></tr>
+      <tr class="tot"><td colspan="8" style="text-align:left;">الإجمالي <span class="bl">Total</span></td><td>${n(totGross)}</td><td>${n(totDed)}</td><td>${n(totNet)}</td></tr>
     </tbody></table>
     <div class="sigs">
       ${(company.signatures && company.signatures.length ? company.signatures : [{titleAr:'مدير الموارد البشرية',titleEn:'HR Manager'},{titleAr:'المدير المالي',titleEn:'Finance Manager'},{titleAr:'المدير العام',titleEn:'General Manager'}])
@@ -1319,7 +1382,7 @@ async function loadEos(){
     const rows = await api(`/companies/${activeCompanyId}/eos`);
     let html = `<thead><tr><th>الموظف</th><th>السبب</th><th>سنوات الخدمة</th><th>المكافأة</th><th>الصافي</th><th>الحالة</th>${canEdit?'<th>إجراء</th>':''}</tr></thead><tbody>`;
     rows.forEach(r => {
-      const reasonLabel = r.reason === 'terminated' ? 'إنهاء خدمة' : 'استقالة';
+      const reasonLabel = { terminated:'فصل من صاحب العمل', contract_end:'انتهاء عقد', resigned:'استقالة', mutual:'اتفاق طرفين', death:'وفاة', disability:'عجز' }[r.reason] || r.reason;
       const nextStatus = { Pending:'Approved', Approved:'Paid' }[r.status];
       html += `<tr><td style="text-align:right;">${esc(r.namear)}</td><td>${esc(reasonLabel)}</td><td>${esc(r.hire||'-')} → ${esc(r.end||'-')}</td><td style="font-weight:700;">${esc(r.gratuity)}</td><td style="font-weight:700;color:var(--green);">${esc(r.netEos)}</td><td><span class="badge">${esc(r.status)}</span></td>`;
       if (canEdit) html += `<td>${nextStatus ? `<button class="btn btn-outline btn-sm" onclick="advanceEosStatus(${r.id}, '${nextStatus}')">→ ${esc(nextStatus)}</button>` : '-'}</td>`;
