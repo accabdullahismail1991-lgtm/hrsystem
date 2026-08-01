@@ -133,7 +133,21 @@ router.post('/:runId/generate', requireCompanyRole('managePayroll'), async (req,
   const employees = await db('employees').where({ company_id: req.companyId, status: 'Active' }).whereNotIn('id', existing.filter(Boolean).length ? existing : [-1]);
 
   for (const e of employees) {
-    const calc = calcPayrollLine({ basic: e.basic, housing: e.housing, transport: e.transport, other: e.other }, run.work_days);
+    // Fixed monthly deductions on the employee record auto-apply as
+    // "other deductions", same as the original app's calcEmpFixedDed.
+    let fixedDedTotal = 0;
+    try {
+      const list = JSON.parse(e.fixed_deductions || '[]');
+      if (Array.isArray(list)) fixedDedTotal = list.reduce((s, d) => s + (Number(d.amount) || 0), 0);
+    } catch { /* ignore malformed data */ }
+
+    const line = {
+      basic: e.basic, housing: e.housing, transport: e.transport, other: e.other,
+      otherDeduction: fixedDedTotal,
+      gosiEmp: e.gosi_emp, healthIns: e.health_ins, incomeTax: e.income_tax, unionFee: e.union_fee,
+      gosiEr: e.gosi_er, otherEr: e.other_er,
+    };
+    const calc = calcPayrollLine(line, run.work_days);
     await db('payroll_lines').insert({
       payroll_run_id: run.id,
       employee_id: e.id,
@@ -143,6 +157,14 @@ router.post('/:runId/generate', requireCompanyRole('managePayroll'), async (req,
       housing: e.housing,
       transport: e.transport,
       other: e.other,
+      other_deduction: fixedDedTotal,
+      gosi_emp: e.gosi_emp,
+      health_ins: e.health_ins,
+      income_tax: e.income_tax,
+      union_fee: e.union_fee,
+      gosi_er: e.gosi_er,
+      other_er: e.other_er,
+      pay_method: e.pay || 'Transfer',
       absence_deduction: calc.absenceDeduction,
       gross_pay: calc.grossPay,
       total_deductions: calc.totalDeductions,

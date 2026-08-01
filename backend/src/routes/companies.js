@@ -27,18 +27,32 @@ router.post('/', async (req, res) => {
   res.status(201).json({ id: companyId, nameAr, nameEn: nameEn || nameAr, role: 'owner' });
 });
 
+function parseSignatures(v) {
+  if (!v) return [];
+  try {
+    const parsed = JSON.parse(v);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
 router.get('/:companyId', requireCompanyRole('view'), async (req, res) => {
   const company = await db('companies').where({ id: req.companyId }).first();
   if (!company) return res.status(404).json({ error: 'Not found' });
-  res.json({ id: company.id, nameAr: company.name_ar, nameEn: company.name_en, logoDataUrl: company.logo_data_url, role: req.role });
+  res.json({
+    id: company.id, nameAr: company.name_ar, nameEn: company.name_en,
+    logoDataUrl: company.logo_data_url, signatures: parseSignatures(company.signatures), role: req.role,
+  });
 });
 
 router.patch('/:companyId', requireCompanyRole('manageCompanySettings'), async (req, res) => {
-  const { nameAr, nameEn, logoDataUrl } = req.body || {};
+  const { nameAr, nameEn, logoDataUrl, signatures } = req.body || {};
   const patch = {};
   if (nameAr !== undefined) patch.name_ar = nameAr;
   if (nameEn !== undefined) patch.name_en = nameEn;
   if (logoDataUrl !== undefined) patch.logo_data_url = logoDataUrl;
+  if (signatures !== undefined) patch.signatures = JSON.stringify(signatures || []);
   patch.updated_at = new Date();
   await db('companies').where({ id: req.companyId }).update(patch);
   res.json({ ok: true });

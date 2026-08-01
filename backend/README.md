@@ -120,20 +120,25 @@ a member of returns `403`, not the other company's data.
 
 ## What's covered vs. what's still in the legacy single-file app
 
-This backend now covers company/user/role management, employees (full
-identity/personal/employment/salary field set — ID type & expiry, iqama,
-passport, nationality, gender, DOB, cost center, branch link, bank/IBAN,
-etc.), contractors, branches, payroll runs (with printable bilingual salary
-slips), advances/settlements, end-of-service gratuity, an org chart view,
-and a KPI dashboard — all company-scoped with real server-side permission
-checks, and the web UI labeled bilingually (Arabic/English) throughout,
-matching the original app's presentation.
+This backend now covers company/user/role management (with a dedicated
+Company Settings screen — name, logo, configurable approval signatures),
+employees (full identity/personal/employment/salary field set — ID type &
+expiry, iqama, passport, nationality, gender, DOB, cost center, branch
+link, GOSI employee/employer %/amounts, health insurance, income tax,
+fixed monthly deductions, file attachments, bank/IBAN/SWIFT, etc.),
+contractors, branches, payroll runs (with printable bilingual salary
+slips *and* a full payroll summary sheet with signatures — both pull the
+company's configured signatures/logo), advances/settlements, end-of-service
+gratuity, an org chart view, and a KPI dashboard — all company-scoped with
+real server-side permission checks. "Add/edit" screens are modal popups
+(matching the original's UI pattern) rather than permanently-inline forms.
+The web UI is labeled bilingually (Arabic/English) throughout. The Gregorian
+→ Hijri year on payroll runs auto-fills via the browser's built-in Islamic
+calendar.
 
-Still only in `../index.html` (single-company, `localStorage`-based):
-bulk/all-employees payroll printing in one document, company branding
-(logo/signatures) on printed documents, and the print-settings/theme
-customization screen. These are incremental additions to the payroll-run
-and company-settings data this API already exposes.
+Still only in `../index.html` (single-company, `localStorage`-based): the
+compliance report, backup/restore, Excel import/export, and the
+print-settings/theme customization screen.
 
 ## Deployment
 
