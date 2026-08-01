@@ -5,6 +5,23 @@ const { signToken, requireAuth } = require('../middleware/auth');
 
 const router = express.Router();
 
+// Emails listed here are auto-promoted to super admin (platform owner) the
+// next time they register or log in. This is how the very first super
+// admin gets bootstrapped without needing direct DB access.
+const SUPER_ADMIN_EMAILS = String(process.env.SUPER_ADMIN_EMAILS || '')
+  .split(',')
+  .map((e) => e.trim().toLowerCase())
+  .filter(Boolean);
+
+async function syncSuperAdminFlag(user) {
+  const shouldBeSuperAdmin = SUPER_ADMIN_EMAILS.includes(user.email);
+  if (shouldBeSuperAdmin && !user.is_super_admin) {
+    await db('users').where({ id: user.id }).update({ is_super_admin: true });
+    user.is_super_admin = true;
+  }
+  return user;
+}
+
 router.post('/register', async (req, res) => {
   const { companyNameAr, companyNameEn, email, password, fullName } = req.body || {};
   if (!companyNameAr || !email || !password || !fullName) {
@@ -33,23 +50,29 @@ router.post('/register', async (req, res) => {
     return { companyId, userId };
   });
 
-  const user = { id: result.userId, email: email.toLowerCase(), full_name: fullName };
-  res.status(201).json({ token: signToken(user), user, companyId: result.companyId });
+  let user = { id: result.userId, email: email.toLowerCase(), full_name: fullName, is_super_admin: false };
+  user = await syncSuperAdminFlag(user);
+  res.status(201).json({
+    token: signToken(user),
+    user: { id: user.id, email: user.email, full_name: user.full_name, isSuperAdmin: user.is_super_admin },
+    companyId: result.companyId,
+  });
 });
 
 router.post('/login', async (req, res) => {
   const { email, password } = req.body || {};
   if (!email || !password) return res.status(400).json({ error: 'email and password are required' });
 
-  const user = await db('users').where({ email: String(email).toLowerCase() }).first();
+  let user = await db('users').where({ email: String(email).toLowerCase() }).first();
   if (!user || !user.is_active) return res.status(401).json({ error: 'Invalid email or password' });
 
   const ok = await bcrypt.compare(password, user.password_hash);
   if (!ok) return res.status(401).json({ error: 'Invalid email or password' });
 
+  user = await syncSuperAdminFlag(user);
   res.json({
     token: signToken(user),
-    user: { id: user.id, email: user.email, full_name: user.full_name },
+    user: { id: user.id, email: user.email, full_name: user.full_name, isSuperAdmin: user.is_super_admin },
   });
 });
 
@@ -68,7 +91,7 @@ router.get('/me', requireAuth, async (req, res) => {
     );
 
   res.json({
-    user: { id: user.id, email: user.email, full_name: user.full_name },
+    user: { id: user.id, email: user.email, full_name: user.full_name, isSuperAdmin: !!user.is_super_admin },
     companies: memberships,
   });
 });

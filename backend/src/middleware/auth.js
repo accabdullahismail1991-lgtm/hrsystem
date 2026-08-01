@@ -8,7 +8,7 @@ if (!JWT_SECRET) {
 }
 
 function signToken(user) {
-  return jwt.sign({ sub: user.id, email: user.email }, JWT_SECRET, { expiresIn: '12h' });
+  return jwt.sign({ sub: user.id, email: user.email, isSuperAdmin: !!user.is_super_admin }, JWT_SECRET, { expiresIn: '12h' });
 }
 
 function requireAuth(req, res, next) {
@@ -18,6 +18,7 @@ function requireAuth(req, res, next) {
   try {
     const payload = jwt.verify(token, JWT_SECRET);
     req.userId = payload.sub;
+    req.isSuperAdmin = !!payload.isSuperAdmin;
     next();
   } catch {
     return res.status(401).json({ error: 'Invalid or expired token' });
@@ -44,4 +45,9 @@ function requireCompanyRole(action) {
   };
 }
 
-module.exports = { signToken, requireAuth, requireCompanyRole, JWT_SECRET };
+function requireSuperAdmin(req, res, next) {
+  if (!req.isSuperAdmin) return res.status(403).json({ error: 'Super admin access required' });
+  next();
+}
+
+module.exports = { signToken, requireAuth, requireCompanyRole, requireSuperAdmin, JWT_SECRET };

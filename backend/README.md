@@ -12,6 +12,14 @@ multi-tenancy on top of the standalone payroll app in `../index.html`:
   `viewer` (see `src/permissions.js`). Roles are assigned per company, so
   the same person can be an owner of one company and have no access at all
   to another.
+- **Platform super admin** — a system-owner role above per-company roles
+  (`users.is_super_admin`). Emails listed in `SUPER_ADMIN_EMAILS` are
+  auto-promoted on register/login. A super admin gets a "🛡️ إدارة النظام /
+  Platform Admin" page listing every company in the system (owners, user
+  count, employee count), can create new companies from inside the app,
+  and can grant or revoke any external user's access to any specific
+  company (`/api/admin/...`, `src/routes/admin.js`) without being a
+  member of it.
 - **Employees** — the regular payroll headcount.
 - **Contractors** — a separate module for outsourced/temporary labor under
   individual contracts (daily/monthly/project/hourly), kept out of the

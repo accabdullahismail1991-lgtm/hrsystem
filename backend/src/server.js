@@ -5,6 +5,7 @@ const cors = require('cors');
 const path = require('path');
 
 const authRoutes = require('./routes/auth');
+const adminRoutes = require('./routes/admin');
 const companiesRoutes = require('./routes/companies');
 const employeesRoutes = require('./routes/employees');
 const contractorsRoutes = require('./routes/contractors');
@@ -21,6 +22,7 @@ app.use(express.json({ limit: '5mb' }));
 app.get('/api/health', (req, res) => res.json({ ok: true }));
 
 app.use('/api/auth', authRoutes);
+app.use('/api/admin', adminRoutes);
 app.use('/api/companies', companiesRoutes);
 app.use('/api/companies/:companyId/employees', employeesRoutes);
 app.use('/api/companies/:companyId/contractors', contractorsRoutes);

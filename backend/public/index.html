@@ -54,12 +54,17 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--te
 .topbar h2{font-size:15px;font-weight:700;color:var(--navy2);}
 .section-card{background:var(--card);border-radius:10px;padding:18px 20px;box-shadow:0 2px 8px rgba(0,0,0,.06);margin-bottom:16px;}
 .form-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:11px;margin-bottom:12px;}
+.tbl-wrap{overflow-x:auto;border-radius:8px;border:1px solid #eef0f5;}
 table.dtbl{width:100%;border-collapse:collapse;font-size:11.5px;}
-table.dtbl th{background:var(--navy);color:#fff;padding:7px;text-align:center;font-size:11px;}
+table.dtbl th{background:var(--navy);color:#fff;padding:8px 7px;text-align:center;font-size:11px;position:sticky;top:0;z-index:1;white-space:nowrap;}
 table.dtbl td{padding:6px 7px;text-align:center;border-bottom:1px solid #eef0f5;}
-table.dtbl tr:hover td{background:#f5f8ff;}
+table.dtbl tbody tr:nth-child(even) td{background:#f9fafc;}
+table.dtbl tr:hover td{background:#f0f5ff;}
 table.dtbl th.sortable{cursor:pointer;user-select:none;}
 table.dtbl th.sortable:hover{background:var(--navy2);}
+table.dtbl tr.tot-row td{background:#e8f0ff;font-weight:700;color:var(--navy2);border-top:2px solid var(--navy2);}
+table.dtbl input[type=number],table.dtbl input[type=text]{border:1px solid var(--border);border-radius:5px;padding:4px 6px;font-family:inherit;font-size:11px;}
+table.dtbl input[type=number]:focus,table.dtbl input[type=text]:focus{outline:2px solid var(--navy2);outline-offset:-1px;}
 .sort-arrow{opacity:.7;font-size:9px;margin-inline-start:3px;}
 .filter-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;}
 .filter-bar input{border:1.5px solid var(--border);border-radius:6px;padding:7px 10px;font-size:12.5px;font-family:inherit;flex:1;min-width:200px;}
@@ -130,6 +135,7 @@ table.dtbl th.sortable:hover{background:var(--navy2);}
     <div class="nav-item" data-page="compliance" onclick="showPage('compliance')">🔐 <span>تقرير الامتثال<span class="bl">Compliance</span></span></div>
     <div class="nav-item" data-page="users" onclick="showPage('users')">🔑 <span>المستخدمون والصلاحيات<span class="bl">Users & Roles</span></span></div>
     <div class="nav-item" data-page="companySettings" onclick="showPage('companySettings')">🏢 <span>تعريف الشركة<span class="bl">Company Settings</span></span></div>
+    <div class="nav-item hide" id="nav-platformAdmin" data-page="platformAdmin" onclick="showPage('platformAdmin')">🛡️ <span>إدارة النظام<span class="bl">Platform Admin</span></span></div>
     <div class="nav-bottom">
       <button class="btn btn-outline btn-sm" style="width:100%;color:#fff;border-color:rgba(255,255,255,.3);" onclick="logout()">تسجيل الخروج <span class="bl">Logout</span></button>
     </div>
@@ -330,7 +336,10 @@ table.dtbl th.sortable:hover{background:var(--navy2);}
           <div class="fg"><label>&nbsp;</label><button class="btn btn-outline" onclick="openPayrollColumnPicker()">⚙️ أعمدة الطباعة <span class="bl">Print Columns</span></button></div>
         </div>
       </div>
-      <div class="section-card"><div class="tbl-wrap"><table class="dtbl" id="prTable"></table></div></div>
+      <div class="section-card">
+        <div class="filter-bar"><input id="pr_lineFilter" placeholder="🔍 بحث بالرقم الوظيفي/الاسم/القسم/الفرع... / Search No./Name/Dept/Branch..." oninput="renderPayrollTable()"></div>
+        <div class="tbl-wrap"><table class="dtbl" id="prTable"></table></div>
+      </div>
 
       <div class="section-card">
         <div class="form-grid" style="margin-bottom:10px;">
@@ -476,6 +485,62 @@ table.dtbl th.sortable:hover{background:var(--navy2);}
         </div>
       </div>
     </div>
+
+    <div id="page-platformAdmin" class="page-content hide">
+      <div class="section-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+          <div>
+            <div style="font-weight:800;font-size:15px;">🛡️ إدارة النظام <span class="bl">Platform Admin</span></div>
+            <div style="font-size:11.5px;color:var(--muted);margin-top:2px;">عرض وإدارة جميع شركات النظام، وإنشاء شركات جديدة، ومنح أطراف خارجية صلاحية الدخول على شركة معينة.<span class="bl"> View and manage every company in the system, create new companies, and grant external parties access to a specific company.</span></div>
+          </div>
+          <button class="btn btn-navy" onclick="openPlatformCompanyModal()">+ إنشاء شركة جديدة <span class="bl">New Company</span></button>
+        </div>
+      </div>
+      <div class="section-card">
+        <div class="filter-bar"><input id="padm_filter" placeholder="🔍 بحث باسم الشركة/المالك... / Search Name/Owner..." oninput="renderPlatformCompaniesTable()"></div>
+        <div class="tbl-wrap"><table class="dtbl" id="padmTable"></table></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="padmCompanyModalOverlay">
+  <div class="modal" style="width:min(96vw,480px);">
+    <div class="modal-head"><h3>+ إنشاء شركة جديدة <span class="bl">New Company</span></h3><button class="close-btn" onclick="closeModal('padmCompanyModalOverlay')">✕</button></div>
+    <div class="form-grid">
+      <div class="fg"><label>اسم الشركة (عربي)*<span class="bl">Name (Arabic)*</span></label><input id="padm_nameAr"></div>
+      <div class="fg"><label>اسم الشركة (إنجليزي)<span class="bl">Name (English)</span></label><input id="padm_nameEn"></div>
+    </div>
+    <div class="section-title">👤 المالك الأولي (اختياري) <span class="bl">Initial Owner (optional)</span></div>
+    <div class="form-grid">
+      <div class="fg"><label>البريد الإلكتروني<span class="bl">Email</span></label><input id="padm_ownerEmail" type="email"></div>
+      <div class="fg"><label>الاسم (لمستخدم جديد)<span class="bl">Name (new user)</span></label><input id="padm_ownerName"></div>
+      <div class="fg"><label>كلمة مرور (لمستخدم جديد)<span class="bl">Password (new user)</span></label><input id="padm_ownerPass" type="password"></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:6px;">
+      <button class="btn btn-navy" onclick="createPlatformCompany()">+ إنشاء <span class="bl">Create</span></button>
+      <button class="btn btn-outline" onclick="closeModal('padmCompanyModalOverlay')">إلغاء <span class="bl">Cancel</span></button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="padmAccessModalOverlay">
+  <div class="modal" style="width:min(96vw,540px);">
+    <div class="modal-head"><h3>🔑 إدارة الوصول <span class="bl">Manage Access</span> — <span id="padmAccessCoName"></span></h3><button class="close-btn" onclick="closeModal('padmAccessModalOverlay')">✕</button></div>
+    <div class="section-title">➕ منح صلاحية <span class="bl">Grant Access</span></div>
+    <p style="font-size:11px;color:var(--muted);margin-bottom:8px;">أدخل بريد مستخدم موجود لمنحه صلاحية على هذه الشركة، أو أدخل الاسم وكلمة مرور لإنشاء مستخدم جديد. <span class="bl">Enter an existing user's email to grant them access, or fill in name/password to create a new one.</span></p>
+    <div class="form-grid">
+      <div class="fg"><label>البريد الإلكتروني*<span class="bl">Email*</span></label><input id="padm_grantEmail" type="email"></div>
+      <div class="fg"><label>الاسم (لمستخدم جديد)<span class="bl">Name (new user)</span></label><input id="padm_grantName"></div>
+      <div class="fg"><label>كلمة مرور (لمستخدم جديد)<span class="bl">Password (new user)</span></label><input id="padm_grantPass" type="password"></div>
+      <div class="fg"><label>الصلاحية<span class="bl">Role</span></label>
+        <select id="padm_grantRole"><option value="viewer">مشاهدة فقط / Viewer</option><option value="hr">موارد بشرية / HR</option><option value="finance">مالية / Finance</option><option value="admin">مدير / Admin</option><option value="owner">مالك / Owner</option></select>
+      </div>
+    </div>
+    <button class="btn btn-navy btn-sm" onclick="grantPlatformAccess()">منح الصلاحية <span class="bl">Grant</span></button>
+    <div class="section-title" style="margin-top:16px;">👥 المستخدمون الحاليون <span class="bl">Current Users</span></div>
+    <div class="tbl-wrap"><table class="dtbl" id="padmAccessUsersTable"></table></div>
+    <div style="margin-top:12px;"><button class="btn btn-outline" onclick="closeModal('padmAccessModalOverlay')">إغلاق <span class="bl">Close</span></button></div>
   </div>
 </div>
 
@@ -563,6 +628,7 @@ async function afterLogin(){
   const sel = document.getElementById('companySelect');
   sel.innerHTML = companies.map(c => `<option value="${c.companyId}">${c.nameAr}</option>`).join('');
   sel.value = activeCompanyId;
+  document.getElementById('nav-platformAdmin').classList.toggle('hide', !me.isSuperAdmin);
 
   document.getElementById('authScreen').classList.add('hide');
   document.getElementById('appScreen').classList.remove('hide');
@@ -596,6 +662,8 @@ const PAGE_TITLES = {
   orgchart:'الهيكل التنظيمي / Organization Chart', kpi:'لوحة المؤشرات / KPI Dashboard',
   compliance:'تقرير الامتثال / Compliance Report',
   users:'المستخدمون والصلاحيات / Users & Roles',
+  companySettings:'تعريف الشركة / Company Settings',
+  platformAdmin:'إدارة النظام / Platform Admin',
 };
 
 function showPage(page){
@@ -614,6 +682,7 @@ function showPage(page){
   if (page === 'eos') loadEosPage();
   if (page === 'companySettings') loadCompanySettings();
   if (page === 'users') loadUsers();
+  if (page === 'platformAdmin') loadPlatformAdmin();
 }
 
 function canManage(action){
@@ -981,6 +1050,94 @@ async function removeUser(id){
   catch(e){ toast(e.message, true); }
 }
 
+// --- Platform Admin (super admin only — sees/manages every company) ---
+let _platformCompaniesCache = [];
+let _padmSort = makeSortState('nameAr');
+let _padmActiveCompanyId = null;
+
+async function loadPlatformAdmin(){
+  try{
+    _platformCompaniesCache = await api('/admin/companies');
+    renderPlatformCompaniesTable();
+  }catch(e){ toast(e.message, true); }
+}
+function sortPlatformCompaniesBy(key){
+  _padmSort = { key, dir: (_padmSort.key === key ? -_padmSort.dir : 1) };
+  renderPlatformCompaniesTable();
+}
+function renderPlatformCompaniesTable(){
+  const q = (document.getElementById('padm_filter')?.value || '').trim().toLowerCase();
+  let rows = !q ? _platformCompaniesCache : _platformCompaniesCache.filter(c => {
+    const ownerText = (c.owners||[]).map(o => o.email + ' ' + (o.fullName||'')).join(' ').toLowerCase();
+    return c.nameAr.toLowerCase().includes(q) || (c.nameEn||'').toLowerCase().includes(q) || ownerText.includes(q);
+  });
+  rows = sortRows(rows, _padmSort, (c,k) => (k==='userCount'||k==='employeeCount') ? Number(c[k])||0 : c[k]);
+  let html = `<thead><tr>${sortTh('اسم الشركة','nameAr',_padmSort,'sortPlatformCompaniesBy')}<th>المالك<span class="bl">Owner(s)</span></th>${sortTh('المستخدمون','userCount',_padmSort,'sortPlatformCompaniesBy')}${sortTh('الموظفون','employeeCount',_padmSort,'sortPlatformCompaniesBy')}${sortTh('تاريخ الإنشاء','createdAt',_padmSort,'sortPlatformCompaniesBy')}<th>إدارة الوصول</th></tr></thead><tbody>`;
+  rows.forEach(c => {
+    const ownersText = (c.owners||[]).map(o => esc(o.email)).join(', ') || '—';
+    html += `<tr><td style="text-align:right;">${esc(c.nameAr)} <span class="bl">${esc(c.nameEn||'')}</span></td><td>${ownersText}</td><td>${c.userCount}</td><td>${c.employeeCount}</td><td>${c.createdAt ? esc(String(c.createdAt).slice(0,10)) : '-'}</td>
+      <td><button class="btn btn-outline btn-sm" onclick="openPlatformAccessModal(${c.id})">🔑 إدارة الوصول</button></td></tr>`;
+  });
+  document.getElementById('padmTable').innerHTML = html + '</tbody>';
+}
+function openPlatformCompanyModal(){
+  ['padm_nameAr','padm_nameEn','padm_ownerEmail','padm_ownerName','padm_ownerPass'].forEach(id => document.getElementById(id).value = '');
+  openModal('padmCompanyModalOverlay');
+}
+async function createPlatformCompany(){
+  try{
+    const body = {
+      nameAr: document.getElementById('padm_nameAr').value.trim(),
+      nameEn: document.getElementById('padm_nameEn').value.trim() || undefined,
+      ownerEmail: document.getElementById('padm_ownerEmail').value.trim() || undefined,
+      ownerFullName: document.getElementById('padm_ownerName').value.trim() || undefined,
+      ownerPassword: document.getElementById('padm_ownerPass').value || undefined,
+    };
+    if (!body.nameAr) return toast('اسم الشركة مطلوب', true);
+    await api('/admin/companies', { method:'POST', body: JSON.stringify(body) });
+    closeModal('padmCompanyModalOverlay'); toast('تم إنشاء الشركة'); loadPlatformAdmin();
+  }catch(e){ toast(e.message, true); }
+}
+async function openPlatformAccessModal(companyId){
+  _padmActiveCompanyId = companyId;
+  const c = _platformCompaniesCache.find(x => x.id === companyId);
+  document.getElementById('padmAccessCoName').textContent = c ? c.nameAr : '';
+  ['padm_grantEmail','padm_grantName','padm_grantPass'].forEach(id => document.getElementById(id).value = '');
+  await loadPlatformAccessUsers();
+  openModal('padmAccessModalOverlay');
+}
+async function loadPlatformAccessUsers(){
+  try{
+    const rows = await api(`/admin/companies/${_padmActiveCompanyId}/users`);
+    let html = `<thead><tr><th>البريد</th><th>الاسم</th><th>الصلاحية</th><th>إزالة</th></tr></thead><tbody>`;
+    rows.forEach(u => {
+      html += `<tr><td>${esc(u.email)}</td><td>${esc(u.fullName)}</td><td><span class="badge">${roleLabel(u.role)}</span></td>
+        <td><button class="btn btn-red btn-sm" onclick="revokePlatformAccess(${u.id})">🗑</button></td></tr>`;
+    });
+    document.getElementById('padmAccessUsersTable').innerHTML = html + '</tbody>';
+  }catch(e){ toast(e.message, true); }
+}
+async function grantPlatformAccess(){
+  try{
+    const body = {
+      email: document.getElementById('padm_grantEmail').value.trim(),
+      role: document.getElementById('padm_grantRole').value,
+      fullName: document.getElementById('padm_grantName').value.trim() || undefined,
+      password: document.getElementById('padm_grantPass').value || undefined,
+    };
+    if (!body.email) return toast('البريد الإلكتروني مطلوب', true);
+    await api(`/admin/companies/${_padmActiveCompanyId}/access`, { method:'POST', body: JSON.stringify(body) });
+    ['padm_grantEmail','padm_grantName','padm_grantPass'].forEach(id => document.getElementById(id).value = '');
+    toast('تم منح الصلاحية'); loadPlatformAccessUsers(); loadPlatformAdmin();
+  }catch(e){ toast(e.message, true); }
+}
+async function revokePlatformAccess(userId){
+  try{
+    await api(`/admin/companies/${_padmActiveCompanyId}/access/${userId}`, { method:'DELETE' });
+    toast('تمت إزالة الصلاحية'); loadPlatformAccessUsers(); loadPlatformAdmin();
+  }catch(e){ toast(e.message, true); }
+}
+
 // --- Company Settings ---
 let _companyLogoDataUrl = null;
 let _companySignatures = [];
@@ -1191,7 +1348,9 @@ function renderPayrollTable(){
     <th>سلفة</th><th>خصومات أخرى</th><th>إجمالي الخصومات</th><th>الصافي</th>
     <th>الدفع</th><th>ملاحظات</th><th>طباعة</th>${del}</tr></thead><tbody>`;
   let totalNet = 0, totalGross = 0;
-  const sortedLines = sortRows(r.lines || [], _prLineSort, (l,k) => l[k]);
+  const q = document.getElementById('pr_lineFilter')?.value || '';
+  const filteredLines = filterRows(r.lines || [], q, ['empno','idno','namear','dept','cc']);
+  const sortedLines = sortRows(filteredLines, _prLineSort, (l,k) => l[k]);
   sortedLines.forEach((l,i) => {
     totalNet += l.netPay; totalGross += l.grossPay;
     const present = r.workDays - l.absentDays;
@@ -1459,6 +1618,19 @@ function payrollSummaryCellHtml(col, l, idx, present){
   if (col.key === 'note') styleParts.push('font-size:.85em;');
   return `<td style="${styleParts.join('')}">${val}</td>`;
 }
+function payrollSummaryPageHeader(company, r, pageLabel){
+  return `${customHeaderHtml(company)}
+    ${company.printShowLogo!==false && company.logoDataUrl?`<div style="text-align:center;"><img src="${company.logoDataUrl}" style="max-height:44px;margin-bottom:6px;"></div>`:''}
+    <h2>${esc(company.nameAr)} <span class="bl">${esc(company.nameEn)}</span></h2>
+    <div class="sub">ملخص مسيرة الرواتب <span class="bl">Payroll Summary</span> — ${r.month}/${r.yearG} ${r.yearH?('هـ'+esc(r.yearH)):''}${pageLabel?(' — '+pageLabel):''}</div>`;
+}
+function payrollSummaryPageFooter(company){
+  return `<div class="sigs">
+      ${(company.signatures && company.signatures.length ? company.signatures : [{titleAr:'مدير الموارد البشرية',titleEn:'HR Manager'},{titleAr:'المدير المالي',titleEn:'Finance Manager'},{titleAr:'المدير العام',titleEn:'General Manager'}])
+        .map(s => `<div class="sig"><div class="line">${s.name?esc(s.name):''}</div>${esc(s.titleAr)}<span class="bl">${esc(s.titleEn)}</span></div>`).join('')}
+    </div>
+    ${customFooterHtml(company)}`;
+}
 async function printPayrollSummary(){
   const r = currentPayrollRun;
   if (!r || !(r.lines||[]).length) return toast('لا توجد بيانات في هذه المسيرة', true);
@@ -1497,9 +1669,10 @@ async function printPayrollSummary(){
         if (ci === labelColIdx) return `<td style="text-align:right;">إجمالي الفرع: ${esc(branchName)} <span class="bl">Branch Total</span></td>`;
         return `<td></td>`;
       }).join('');
-      pagesHtml += `<div class="branch-block"${gi < branchNames.length - 1 ? ' style="page-break-after:always;"' : ''}>
-        <div class="branch-title">📍 ${esc(branchName)}</div>
+      pagesHtml += `<div class="branch-block" style="page-break-after:always;">
+        ${payrollSummaryPageHeader(company, r, `📍 ${esc(branchName)} — عدد الموظفين <span class="bl">Employees</span>: ${lines.length}`)}
         <table>${theadHtml}<tbody>${rowsHtml}<tr class="subtot">${subtotalCells}</tr></tbody></table>
+        ${payrollSummaryPageFooter(company)}
       </div>`;
     });
 
@@ -1508,6 +1681,11 @@ async function printPayrollSummary(){
       if (ci === labelColIdx) return `<td style="text-align:right;">الإجمالي الكلي <span class="bl">Grand Total</span></td>`;
       return `<td></td>`;
     }).join('');
+    const grandPageHtml = `<div class="branch-block">
+      ${payrollSummaryPageHeader(company, r, `جميع الفروع <span class="bl">All Branches</span> — الإجمالي الكلي <span class="bl">Grand Total</span> — عدد الموظفين <span class="bl">Employees</span>: ${r.lines.length} — عدد الفروع <span class="bl">Branches</span>: ${branchNames.length}`)}
+      <table>${theadHtml}<tbody><tr class="grandtot">${grandCells}</tr></tbody></table>
+      ${payrollSummaryPageFooter(company)}
+    </div>`;
 
     const w = window.open('', '_blank');
     w.document.write(`<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8">
@@ -1515,7 +1693,6 @@ async function printPayrollSummary(){
     .bl{opacity:.6;font-size:.85em;}
     h2{color:#1a3a6b;text-align:center;margin-bottom:2px;}
     .sub{text-align:center;font-size:9pt;color:#555;margin-bottom:10px;}
-    .branch-title{font-weight:800;font-size:1.1em;color:#1a3a6b;background:#eef3fc;padding:6px 10px;border-radius:5px;margin:10px 0 4px;}
     table{width:100%;border-collapse:collapse;table-layout:fixed;}
     th{background:#1a3a6b;color:#fff;padding:5px 3px;word-break:break-word;}
     td{padding:4px 3px;border-bottom:1px solid #ddd;text-align:center;word-break:break-word;overflow-wrap:break-word;}
@@ -1535,17 +1712,8 @@ async function printPayrollSummary(){
       <button class="btn-print" onclick="window.print()">🖨️ طباعة / حفظ PDF <span class="bl">Print / Save as PDF</span></button>
       <button class="btn-xlsx" onclick="window.opener.exportPayrollSummaryExcel(${r.id})">📤 تصدير Excel <span class="bl">Export Excel</span></button>
     </div>
-    ${customHeaderHtml(company)}
-    ${company.printShowLogo!==false && company.logoDataUrl?`<div style="text-align:center;"><img src="${company.logoDataUrl}" style="max-height:44px;margin-bottom:6px;"></div>`:''}
-    <h2>${esc(company.nameAr)} <span class="bl">${esc(company.nameEn)}</span></h2>
-    <div class="sub">ملخص مسيرة الرواتب <span class="bl">Payroll Summary</span> — ${r.month}/${r.yearG} ${r.yearH?('هـ'+esc(r.yearH)):''} — عدد الموظفين <span class="bl">Employees</span>: ${r.lines.length} — عدد الفروع <span class="bl">Branches</span>: ${branchNames.length}</div>
     ${pagesHtml}
-    <table><tbody><tr class="grandtot">${grandCells}</tr></tbody></table>
-    <div class="sigs">
-      ${(company.signatures && company.signatures.length ? company.signatures : [{titleAr:'مدير الموارد البشرية',titleEn:'HR Manager'},{titleAr:'المدير المالي',titleEn:'Finance Manager'},{titleAr:'المدير العام',titleEn:'General Manager'}])
-        .map(s => `<div class="sig"><div class="line">${s.name?esc(s.name):''}</div>${esc(s.titleAr)}<span class="bl">${esc(s.titleEn)}</span></div>`).join('')}
-    </div>
-    ${customFooterHtml(company)}
+    ${grandPageHtml}
     </body></html>`);
     w.document.close();
     setTimeout(() => w.print(), 400);
