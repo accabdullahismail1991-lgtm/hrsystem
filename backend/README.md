@@ -194,6 +194,19 @@ employee records (for runs generated before those fields existed, or
 after editing an employee's registry details) without touching any
 payroll-specific numbers already entered for that run.
 
+The payroll summary print now has a "⚙️ أعمدة الطباعة / Print Columns"
+picker (which columns show, saved per-browser), aligns each column's own
+total directly beneath it (instead of only gross/deductions/net), groups
+rows by branch/cost center with each branch on its own printed page and
+its own subtotal row plus an overall grand total, and auto-shrinks the
+font to keep every visible column on one A4-landscape sheet width.
+
+The Employees, Contractors, Branches, Users, and Payroll-lines tables all
+have a search/filter box and click-to-sort column headers (ascending/
+descending), so records can be ordered by employee number, name,
+department, etc. instead of only insertion order; the payroll table's `#`
+header resets to the default name-sequence order.
+
 Still only in `../index.html` (single-company, `localStorage`-based):
 backup/restore.
 

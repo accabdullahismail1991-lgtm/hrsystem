@@ -58,6 +58,11 @@ table.dtbl{width:100%;border-collapse:collapse;font-size:11.5px;}
 table.dtbl th{background:var(--navy);color:#fff;padding:7px;text-align:center;font-size:11px;}
 table.dtbl td{padding:6px 7px;text-align:center;border-bottom:1px solid #eef0f5;}
 table.dtbl tr:hover td{background:#f5f8ff;}
+table.dtbl th.sortable{cursor:pointer;user-select:none;}
+table.dtbl th.sortable:hover{background:var(--navy2);}
+.sort-arrow{opacity:.7;font-size:9px;margin-inline-start:3px;}
+.filter-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;}
+.filter-bar input{border:1.5px solid var(--border);border-radius:6px;padding:7px 10px;font-size:12.5px;font-family:inherit;flex:1;min-width:200px;}
 .badge{display:inline-block;padding:2px 9px;border-radius:9px;font-size:10px;font-weight:600;background:#ddeeff;color:var(--navy2);}
 .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;padding:10px 20px;border-radius:8px;font-size:12.5px;z-index:9999;}
 .perm-note{font-size:10.5px;color:var(--muted);margin-bottom:10px;}
@@ -142,7 +147,10 @@ table.dtbl tr:hover td{background:#f5f8ff;}
           <input type="file" id="empImportInput" accept=".xlsx" style="display:none" onchange="handleEmployeeImportFile(this)">
         </div>
       </div>
-      <div class="section-card"><div class="tbl-wrap"><table class="dtbl" id="empTable"></table></div></div>
+      <div class="section-card">
+        <div class="filter-bar"><input id="emp_filter" placeholder="🔍 بحث بالرقم الوظيفي/الاسم/القسم... / Search No./Name/Dept..." oninput="renderEmployeesTable()"></div>
+        <div class="tbl-wrap"><table class="dtbl" id="empTable"></table></div>
+      </div>
     </div>
 
     <div class="overlay" id="importModalOverlay">
@@ -252,7 +260,10 @@ table.dtbl tr:hover td{background:#f5f8ff;}
         <div class="perm-note" id="conPermNote"></div>
         <button class="btn btn-navy" id="conAddBtn" onclick="openModal('conModalOverlay')">+ إضافة مقاول <span class="bl">Add Contractor</span></button>
       </div>
-      <div class="section-card"><div class="tbl-wrap"><table class="dtbl" id="conTable"></table></div></div>
+      <div class="section-card">
+        <div class="filter-bar"><input id="con_filter" placeholder="🔍 بحث بالاسم/النوع/المشروع... / Search Name/Type/Project..." oninput="renderContractorsTable()"></div>
+        <div class="tbl-wrap"><table class="dtbl" id="conTable"></table></div>
+      </div>
     </div>
 
     <div class="overlay" id="conModalOverlay">
@@ -278,7 +289,10 @@ table.dtbl tr:hover td{background:#f5f8ff;}
         <div class="perm-note" id="brPermNote"></div>
         <button class="btn btn-navy" id="brAddBtn" onclick="openModal('brModalOverlay')">+ إضافة فرع <span class="bl">Add Branch</span></button>
       </div>
-      <div class="section-card"><div class="tbl-wrap"><table class="dtbl" id="brTable"></table></div></div>
+      <div class="section-card">
+        <div class="filter-bar"><input id="br_filter" placeholder="🔍 بحث بالرمز/الاسم/المدينة... / Search Code/Name/City..." oninput="renderBranchesTable()"></div>
+        <div class="tbl-wrap"><table class="dtbl" id="brTable"></table></div>
+      </div>
     </div>
 
     <div class="overlay" id="brModalOverlay">
@@ -389,7 +403,10 @@ table.dtbl tr:hover td{background:#f5f8ff;}
         <div class="perm-note" id="usrPermNote"></div>
         <button class="btn btn-navy" id="usrAddBtn" onclick="openModal('usrModalOverlay')">+ إضافة مستخدم <span class="bl">Add User</span></button>
       </div>
-      <div class="section-card"><div class="tbl-wrap"><table class="dtbl" id="usrTable"></table></div></div>
+      <div class="section-card">
+        <div class="filter-bar"><input id="usr_filter" placeholder="🔍 بحث بالبريد/الاسم/الصلاحية... / Search Email/Name/Role..." oninput="renderUsersTable()"></div>
+        <div class="tbl-wrap"><table class="dtbl" id="usrTable"></table></div>
+      </div>
     </div>
 
     <div class="overlay" id="usrModalOverlay">
@@ -623,30 +640,62 @@ async function populateBranchSelect(selectId){
   }catch(e){ toast(e.message, true); }
 }
 
+// --- Generic table sort/filter helpers (Employees, Contractors, Branches, Users) ---
+function makeSortState(defaultKey){ return { key: defaultKey, dir: 1 }; }
+function sortArrow(state, key){ return state.key === key ? `<span class="sort-arrow">${state.dir===1?'▲':'▼'}</span>` : ''; }
+function sortTh(label, key, state, fnName){ return `<th class="sortable" onclick="${fnName}('${key}')">${esc(label)}${sortArrow(state,key)}</th>`; }
+function sortRows(rows, state, valueFn){
+  if (!state.key) return rows;
+  return [...rows].sort((a, b) => {
+    let va = valueFn(a, state.key), vb = valueFn(b, state.key);
+    const bothNumeric = typeof va === 'number' && typeof vb === 'number';
+    if (!bothNumeric){ va = (va==null?'':String(va)).toLowerCase(); vb = (vb==null?'':String(vb)).toLowerCase(); }
+    if (va < vb) return -1 * state.dir;
+    if (va > vb) return 1 * state.dir;
+    return 0;
+  });
+}
+function filterRows(rows, filterText, fields){
+  const q = (filterText || '').trim().toLowerCase();
+  if (!q) return rows;
+  return rows.filter(r => fields.some(f => String(r[f] ?? '').toLowerCase().includes(q)));
+}
+
 // --- Employees ---
-const EMP_FIELD_IDS = ['e_namear','e_nameen','e_empno','e_idno','e_idtype','e_idexp','e_iqama','e_passport','e_nat','e_gender','e_dob','e_phone','e_email','e_dept','e_jobar','e_joben','e_cc','e_branchId','e_hire','e_status','e_basic','e_housing','e_transport','e_other','e_gosiEmpPct','e_gosiEmp','e_healthIns','e_incomeTax','e_unionFee','e_gosiErPct','e_gosiEr','e_otherEr','e_pay','e_bank','e_iban','e_swift','e_notes'];
+const EMP_FIELD_IDS =['e_namear','e_nameen','e_empno','e_idno','e_idtype','e_idexp','e_iqama','e_passport','e_nat','e_gender','e_dob','e_phone','e_email','e_dept','e_jobar','e_joben','e_cc','e_branchId','e_hire','e_status','e_basic','e_housing','e_transport','e_other','e_gosiEmpPct','e_gosiEmp','e_healthIns','e_incomeTax','e_unionFee','e_gosiErPct','e_gosiEr','e_otherEr','e_pay','e_bank','e_iban','e_swift','e_notes'];
 const EMP_NUMBER_FIELDS = ['basic','housing','transport','other','gosiEmpPct','gosiEmp','healthIns','incomeTax','unionFee','gosiErPct','gosiEr','otherEr'];
 let _employeesCache = [];
 let _fixedDeds = [];
 let _attachments = [];
 
+let _empSort = makeSortState('empno');
 async function loadEmployees(){
   const canEdit = canManage('manageEmployees');
   document.getElementById('empAddBtn').style.display = canEdit ? '' : 'none';
   document.getElementById('empImportBtn').style.display = canEdit ? '' : 'none';
   document.getElementById('empPermNote').textContent = canEdit ? '' : 'صلاحيتك الحالية للمشاهدة فقط في هذه الشركة.';
   try{
-    const rows = await api(`/companies/${activeCompanyId}/employees`);
-    _employeesCache = rows;
-    const del = canEdit ? '<th>تعديل</th><th>حذف</th>' : '';
-    let html = `<thead><tr><th>الرقم الوظيفي</th><th>الاسم</th><th>القسم</th><th>الأساسي</th><th>السكن</th><th>الحالة</th>${del}</tr></thead><tbody>`;
-    rows.forEach(e => {
-      html += `<tr><td>${esc(e.empno||'-')}</td><td>${esc(e.namear)}</td><td>${esc(e.dept||'-')}</td><td>${esc(e.basic)}</td><td>${esc(e.housing)}</td><td><span class="badge">${esc(e.status)}</span></td>`;
-      if (canEdit) html += `<td><button class="btn btn-outline btn-sm" onclick="editEmployee(${e.id})">✏️</button></td><td><button class="btn btn-red btn-sm" onclick="deleteEmployee(${e.id})">🗑</button></td>`;
-      html += `</tr>`;
-    });
-    document.getElementById('empTable').innerHTML = html + '</tbody>';
+    _employeesCache = await api(`/companies/${activeCompanyId}/employees`);
+    renderEmployeesTable();
   }catch(e){ toast(e.message, true); }
+}
+function sortEmployeesBy(key){
+  _empSort = { key, dir: (_empSort.key === key ? -_empSort.dir : 1) };
+  renderEmployeesTable();
+}
+function renderEmployeesTable(){
+  const canEdit = canManage('manageEmployees');
+  const q = document.getElementById('emp_filter')?.value || '';
+  let rows = filterRows(_employeesCache, q, ['empno','namear','dept','status']);
+  rows = sortRows(rows, _empSort, (e,k) => k==='basic'||k==='housing' ? Number(e[k])||0 : e[k]);
+  const del = canEdit ? '<th>تعديل</th><th>حذف</th>' : '';
+  let html = `<thead><tr>${sortTh('الرقم الوظيفي','empno',_empSort,'sortEmployeesBy')}${sortTh('الاسم','namear',_empSort,'sortEmployeesBy')}${sortTh('القسم','dept',_empSort,'sortEmployeesBy')}${sortTh('الأساسي','basic',_empSort,'sortEmployeesBy')}${sortTh('السكن','housing',_empSort,'sortEmployeesBy')}${sortTh('الحالة','status',_empSort,'sortEmployeesBy')}${del}</tr></thead><tbody>`;
+  rows.forEach(e => {
+    html += `<tr><td>${esc(e.empno||'-')}</td><td>${esc(e.namear)}</td><td>${esc(e.dept||'-')}</td><td>${esc(e.basic)}</td><td>${esc(e.housing)}</td><td><span class="badge">${esc(e.status)}</span></td>`;
+    if (canEdit) html += `<td><button class="btn btn-outline btn-sm" onclick="editEmployee(${e.id})">✏️</button></td><td><button class="btn btn-red btn-sm" onclick="deleteEmployee(${e.id})">🗑</button></td>`;
+    html += `</tr>`;
+  });
+  document.getElementById('empTable').innerHTML = html + '</tbody>';
 }
 function resetEmployeeForm(){
   document.getElementById('e_id').value = '';
@@ -792,21 +841,34 @@ async function commitEmployeeImport(){
 }
 
 // --- Contractors ---
+let _contractorsCache = [];
+let _conSort = makeSortState('name');
 async function loadContractors(){
   const canEdit = canManage('manageContractors');
   document.getElementById('conAddBtn').style.display = canEdit ? '' : 'none';
   document.getElementById('conPermNote').textContent = canEdit ? 'مقاولون وعمالة مؤقتة بعقود منفصلة — لا يظهرون في مسيرة الرواتب الرئيسية.' : 'صلاحيتك الحالية للمشاهدة فقط في هذه الشركة.';
   try{
-    const rows = await api(`/companies/${activeCompanyId}/contractors`);
-    const del = canEdit ? '<th>حذف</th>' : '';
-    let html = `<thead><tr><th>الاسم</th><th>نوع التعاقد</th><th>الأجر</th><th>الجهة/المشروع</th><th>الحالة</th>${del}</tr></thead><tbody>`;
-    rows.forEach(c => {
-      html += `<tr><td>${esc(c.name)}</td><td>${esc(c.contractType)}</td><td>${esc(c.rate)} ${esc(c.currency)}</td><td>${esc(c.project||'-')}</td><td><span class="badge">${esc(c.status)}</span></td>`;
-      if (canEdit) html += `<td><button class="btn btn-red btn-sm" onclick="deleteContractor(${c.id})">🗑</button></td>`;
-      html += `</tr>`;
-    });
-    document.getElementById('conTable').innerHTML = html + '</tbody>';
+    _contractorsCache = await api(`/companies/${activeCompanyId}/contractors`);
+    renderContractorsTable();
   }catch(e){ toast(e.message, true); }
+}
+function sortContractorsBy(key){
+  _conSort = { key, dir: (_conSort.key === key ? -_conSort.dir : 1) };
+  renderContractorsTable();
+}
+function renderContractorsTable(){
+  const canEdit = canManage('manageContractors');
+  const q = document.getElementById('con_filter')?.value || '';
+  let rows = filterRows(_contractorsCache, q, ['name','contractType','project','status']);
+  rows = sortRows(rows, _conSort, (c,k) => k==='rate' ? Number(c[k])||0 : c[k]);
+  const del = canEdit ? '<th>حذف</th>' : '';
+  let html = `<thead><tr>${sortTh('الاسم','name',_conSort,'sortContractorsBy')}${sortTh('نوع التعاقد','contractType',_conSort,'sortContractorsBy')}${sortTh('الأجر','rate',_conSort,'sortContractorsBy')}${sortTh('الجهة/المشروع','project',_conSort,'sortContractorsBy')}${sortTh('الحالة','status',_conSort,'sortContractorsBy')}${del}</tr></thead><tbody>`;
+  rows.forEach(c => {
+    html += `<tr><td>${esc(c.name)}</td><td>${esc(c.contractType)}</td><td>${esc(c.rate)} ${esc(c.currency)}</td><td>${esc(c.project||'-')}</td><td><span class="badge">${esc(c.status)}</span></td>`;
+    if (canEdit) html += `<td><button class="btn btn-red btn-sm" onclick="deleteContractor(${c.id})">🗑</button></td>`;
+    html += `</tr>`;
+  });
+  document.getElementById('conTable').innerHTML = html + '</tbody>';
 }
 async function createContractor(){
   try{
@@ -828,20 +890,33 @@ async function deleteContractor(id){
 }
 
 // --- Branches ---
+let _branchesCache = [];
+let _brSort = makeSortState('code');
+function sortBranchesBy(key){
+  _brSort = { key, dir: (_brSort.key === key ? -_brSort.dir : 1) };
+  renderBranchesTable();
+}
+function renderBranchesTable(){
+  const canEdit = canManage('manageBranches');
+  const q = document.getElementById('br_filter')?.value || '';
+  let rows = filterRows(_branchesCache, q, ['code','namear','city','status']);
+  rows = sortRows(rows, _brSort, (b,k) => b[k]);
+  const del = canEdit ? '<th>حذف</th>' : '';
+  let html = `<thead><tr>${sortTh('الرمز','code',_brSort,'sortBranchesBy')}${sortTh('الاسم','namear',_brSort,'sortBranchesBy')}${sortTh('المدينة','city',_brSort,'sortBranchesBy')}${sortTh('الحالة','status',_brSort,'sortBranchesBy')}${del}</tr></thead><tbody>`;
+  rows.forEach(b => {
+    html += `<tr><td>${esc(b.code)}</td><td>${esc(b.namear)}</td><td>${esc(b.city||'-')}</td><td><span class="badge">${esc(b.status)}</span></td>`;
+    if (canEdit) html += `<td><button class="btn btn-red btn-sm" onclick="deleteBranch(${b.id})">🗑</button></td>`;
+    html += `</tr>`;
+  });
+  document.getElementById('brTable').innerHTML = html + '</tbody>';
+}
 async function loadBranches(){
   const canEdit = canManage('manageBranches');
   document.getElementById('brAddBtn').style.display = canEdit ? '' : 'none';
   document.getElementById('brPermNote').textContent = canEdit ? '' : 'صلاحيتك الحالية للمشاهدة فقط في هذه الشركة.';
   try{
-    const rows = await api(`/companies/${activeCompanyId}/branches`);
-    const del = canEdit ? '<th>حذف</th>' : '';
-    let html = `<thead><tr><th>الرمز</th><th>الاسم</th><th>المدينة</th><th>الحالة</th>${del}</tr></thead><tbody>`;
-    rows.forEach(b => {
-      html += `<tr><td>${esc(b.code)}</td><td>${esc(b.namear)}</td><td>${esc(b.city||'-')}</td><td><span class="badge">${esc(b.status)}</span></td>`;
-      if (canEdit) html += `<td><button class="btn btn-red btn-sm" onclick="deleteBranch(${b.id})">🗑</button></td>`;
-      html += `</tr>`;
-    });
-    document.getElementById('brTable').innerHTML = html + '</tbody>';
+    _branchesCache = await api(`/companies/${activeCompanyId}/branches`);
+    renderBranchesTable();
   }catch(e){ toast(e.message, true); }
 }
 async function createBranch(){
@@ -863,17 +938,29 @@ async function deleteBranch(id){
 }
 
 // --- Users & roles (owner only — UI is hidden for others, API enforces it regardless) ---
+let _usersCache = [];
+let _usrSort = makeSortState('email');
 async function loadUsers(){
   document.getElementById('usrPermNote').textContent = 'صلاحيات كل مستخدم خاصة بهذه الشركة فقط، ولا تمنحه أي وصول لبيانات شركات أخرى.';
   try{
-    const rows = await api(`/companies/${activeCompanyId}/users`);
-    let html = `<thead><tr><th>البريد</th><th>الاسم</th><th>الصلاحية</th><th>إزالة</th></tr></thead><tbody>`;
-    rows.forEach(u => {
-      html += `<tr><td>${esc(u.email)}</td><td>${esc(u.fullName)}</td><td><span class="badge">${roleLabel(u.role)}</span></td>
-        <td>${u.id === me.id ? '-' : `<button class="btn btn-red btn-sm" onclick="removeUser(${u.id})">🗑</button>`}</td></tr>`;
-    });
-    document.getElementById('usrTable').innerHTML = html + '</tbody>';
+    _usersCache = await api(`/companies/${activeCompanyId}/users`);
+    renderUsersTable();
   }catch(e){ toast(e.message, true); }
+}
+function sortUsersBy(key){
+  _usrSort = { key, dir: (_usrSort.key === key ? -_usrSort.dir : 1) };
+  renderUsersTable();
+}
+function renderUsersTable(){
+  const q = document.getElementById('usr_filter')?.value || '';
+  let rows = filterRows(_usersCache, q, ['email','fullName','role']);
+  rows = sortRows(rows, _usrSort, (u,k) => u[k]);
+  let html = `<thead><tr>${sortTh('البريد','email',_usrSort,'sortUsersBy')}${sortTh('الاسم','fullName',_usrSort,'sortUsersBy')}${sortTh('الصلاحية','role',_usrSort,'sortUsersBy')}<th>إزالة</th></tr></thead><tbody>`;
+  rows.forEach(u => {
+    html += `<tr><td>${esc(u.email)}</td><td>${esc(u.fullName)}</td><td><span class="badge">${roleLabel(u.role)}</span></td>
+      <td>${u.id === me.id ? '-' : `<button class="btn btn-red btn-sm" onclick="removeUser(${u.id})">🗑</button>`}</td></tr>`;
+  });
+  document.getElementById('usrTable').innerHTML = html + '</tbody>';
 }
 async function addUser(){
   try{
@@ -1082,19 +1169,30 @@ async function refreshPayrollEmployeeData(){
     toast(`تم تحديث بيانات ${data.updated} موظف`); loadPayrollRun(currentPayrollRun.id);
   }catch(e){ toast(e.message, true); }
 }
+let _prLineSort = makeSortState('empno');
+function sortPayrollLinesBy(key){
+  _prLineSort = { key, dir: (_prLineSort.key === key ? -_prLineSort.dir : 1) };
+  renderPayrollTable();
+}
+function resetPayrollLineOrder(){
+  _prLineSort = { key: null, dir: 1 };
+  renderPayrollTable();
+}
 function renderPayrollTable(){
   const canEdit = canManage('managePayroll');
   const r = currentPayrollRun;
   const del = canEdit ? '<th>حذف</th>' : '';
+  const seqTh = `<th class="sortable" onclick="resetPayrollLineOrder()" title="إعادة الترتيب حسب التسلسل / Reset to sequence order">#</th>`;
   let html = `<thead><tr>
-    <th>#</th><th>الرقم الوظيفي</th><th>رقم الهوية</th><th>الاسم</th><th>القسم</th><th>الفرع/مركز التكلفة</th>
+    ${seqTh}${sortTh('الرقم الوظيفي','empno',_prLineSort,'sortPayrollLinesBy')}${sortTh('رقم الهوية','idno',_prLineSort,'sortPayrollLinesBy')}${sortTh('الاسم','namear',_prLineSort,'sortPayrollLinesBy')}${sortTh('القسم','dept',_prLineSort,'sortPayrollLinesBy')}${sortTh('الفرع/مركز التكلفة','cc',_prLineSort,'sortPayrollLinesBy')}
     <th>حضور</th><th>غياب</th>
     <th>الأساسي</th><th>السكن</th><th>النقل</th><th>أخرى</th><th>المستحق</th>
     <th>إضافي</th><th>حوافز</th><th>الإجمالي</th>
     <th>سلفة</th><th>خصومات أخرى</th><th>إجمالي الخصومات</th><th>الصافي</th>
     <th>الدفع</th><th>ملاحظات</th><th>طباعة</th>${del}</tr></thead><tbody>`;
   let totalNet = 0, totalGross = 0;
-  (r.lines||[]).forEach((l,i) => {
+  const sortedLines = sortRows(r.lines || [], _prLineSort, (l,k) => l[k]);
+  sortedLines.forEach((l,i) => {
     totalNet += l.netPay; totalGross += l.grossPay;
     const present = r.workDays - l.absentDays;
     const editable = canEdit ? (field, val, w) => `<input type="number" value="${val}" style="width:${w||55}px;" onchange="updatePayrollLine(${l.id}, '${field}', this.value)">` : (field, val) => esc(val);
