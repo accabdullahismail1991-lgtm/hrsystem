@@ -1,7 +1,8 @@
 const express = require('express');
+const ExcelJS = require('exceljs');
 const db = require('../db');
 const { requireAuth, requireCompanyRole } = require('../middleware/auth');
-const { calcKsaEos } = require('../payrollCalc');
+const { calcKsaEos, calcServiceDuration, calcMonthlyAccrual } = require('../payrollCalc');
 
 const router = express.Router({ mergeParams: true });
 router.use(requireAuth);
@@ -69,7 +70,7 @@ router.post('/', requireCompanyRole('managePayroll'), async (req, res) => {
 
 router.patch('/:id', requireCompanyRole('managePayroll'), async (req, res) => {
   const { status } = req.body || {};
-  const VALID = ['Pending', 'Approved', 'Paid'];
+  const VALID = ['Pending', 'Approved', 'Paid', 'Accrual'];
   if (!VALID.includes(status)) return res.status(400).json({ error: `status must be one of ${VALID.join(', ')}` });
   const updated = await db('eos_records').where({ id: req.params.id, company_id: req.companyId }).update({ status, updated_at: new Date() });
   if (!updated) return res.status(404).json({ error: 'Not found' });
@@ -81,6 +82,94 @@ router.delete('/:id', requireCompanyRole('managePayroll'), async (req, res) => {
   const deleted = await db('eos_records').where({ id: req.params.id, company_id: req.companyId }).delete();
   if (!deleted) return res.status(404).json({ error: 'Not found' });
   res.json({ ok: true });
+});
+
+router.delete('/', requireCompanyRole('managePayroll'), async (req, res) => {
+  await db('eos_records').where({ company_id: req.companyId }).delete();
+  res.json({ ok: true });
+});
+
+// Saves a point-in-time snapshot of every active employee's accrued EOS
+// liability as of today — this is what feeds the "Transactions Log" view
+// and lets a company keep a dated record of its provisioning history.
+router.post('/snapshot', requireCompanyRole('managePayroll'), async (req, res) => {
+  const today = new Date().toISOString().slice(0, 10);
+  const employees = await db('employees')
+    .where({ company_id: req.companyId, status: 'Active' })
+    .whereNotNull('hire_date');
+
+  const eligible = employees.filter((e) => Number(e.basic || 0) + Number(e.housing || 0) > 0);
+  if (!eligible.length) {
+    return res.status(400).json({ error: 'No active employees with a hire date and salary to snapshot' });
+  }
+
+  const monthName = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  const rows = eligible.map((emp) => {
+    const calc = calcKsaEos(emp.basic, emp.housing, emp.hire_date, today, 'terminated');
+    return {
+      company_id: req.companyId,
+      employee_id: emp.id,
+      namear_snapshot: emp.namear,
+      empno_snapshot: emp.empno,
+      dept_snapshot: emp.dept,
+      hire_date: emp.hire_date,
+      end_date: today,
+      reason: 'snapshot',
+      basic: emp.basic,
+      housing: emp.housing,
+      gratuity: calc.gratuity,
+      other_dues: 0,
+      deductions: 0,
+      net_eos: calc.gratuity,
+      status: 'Accrual',
+      calc_date: today,
+    };
+  });
+  await db('eos_records').insert(rows);
+  res.status(201).json({ saved: rows.length, label: `Snapshot — ${monthName}` });
+});
+
+// Monthly accrual register (current liability per active employee), for
+// the "Export Excel" button on the EOS Accruals Register.
+router.get('/export/xlsx', requireCompanyRole('view'), async (req, res) => {
+  const today = new Date().toISOString().slice(0, 10);
+  const employees = await db('employees')
+    .where({ company_id: req.companyId, status: 'Active' })
+    .whereNotNull('hire_date')
+    .orderBy('namear');
+
+  const workbook = new ExcelJS.Workbook();
+  const sheet = workbook.addWorksheet('EOS Accrual Register');
+  sheet.columns = [
+    { key: 'empno', header: 'الرقم الوظيفي / Emp No.', width: 14 },
+    { key: 'namear', header: 'الاسم / Name', width: 24 },
+    { key: 'dept', header: 'القسم / Dept', width: 18 },
+    { key: 'hire', header: 'تاريخ التعيين / Hire Date', width: 14 },
+    { key: 'years', header: 'السنوات / Years', width: 8 },
+    { key: 'months', header: 'الأشهر / Months', width: 8 },
+    { key: 'basic', header: 'الأساسي / Basic', width: 12 },
+    { key: 'housing', header: 'السكن / Housing', width: 12 },
+    { key: 'monthlyAccrual', header: 'الاستحقاق الشهري / Monthly Accrual', width: 18 },
+    { key: 'eosLiability', header: 'إجمالي المكافأة / EOS Liability', width: 18 },
+  ];
+  sheet.getRow(1).font = { bold: true };
+  employees.forEach((emp) => {
+    if (Number(emp.basic || 0) + Number(emp.housing || 0) <= 0) return;
+    const dur = calcServiceDuration(emp.hire_date, today);
+    const monthly = calcMonthlyAccrual(emp.basic, emp.housing, dur.totalMonths);
+    const calc = calcKsaEos(emp.basic, emp.housing, emp.hire_date, today, 'terminated');
+    sheet.addRow({
+      empno: emp.empno, namear: emp.namear, dept: emp.dept, hire: emp.hire_date,
+      years: dur.years, months: dur.months,
+      basic: Number(emp.basic), housing: Number(emp.housing),
+      monthlyAccrual: Math.round(monthly), eosLiability: Math.round(calc.gratuity),
+    });
+  });
+
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  res.setHeader('Content-Disposition', `attachment; filename="eos-accrual-register-${today}.xlsx"`);
+  await workbook.xlsx.write(res);
+  res.end();
 });
 
 module.exports = router;

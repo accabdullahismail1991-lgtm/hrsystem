@@ -221,6 +221,21 @@ between them), reusing the exact same slip markup as the single-employee
 print button — both now share one `buildPayrollSlipHtml` builder so the
 formats can never drift apart.
 
+The End of Service page now has the full **EOS Accruals Register** from
+the original app, not just the final-gratuity calculator: a Monthly
+Accrual / Yearly Summary / Full Detail / Transactions Log view selector,
+month/year/branch/status filters, KSA Art. 84/87 policy reference box, a
+live calculator preview (computed instantly in the browser, ported from
+the original's `calcServiceDuration`/`calcKsaEos`/`calcMonthlyAccrual` —
+the figure that actually gets *saved* is always independently recomputed
+and verified server-side), a "💾 Snapshot" button that records every
+active employee's current accrued liability in one shot
+(`POST /eos/snapshot`), a Print Register button, an Excel export
+(`GET /eos/export/xlsx`), and a "Clear All" for the saved-records list
+(`DELETE /eos`). This is the running IAS 19-style provisioning ledger,
+distinct from (and in addition to) the final gratuity-at-termination
+calculator that was already there.
+
 Still only in `../index.html` (single-company, `localStorage`-based):
 backup/restore.
 

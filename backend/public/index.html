@@ -68,6 +68,19 @@ table.dtbl input[type=number]:focus,table.dtbl input[type=text]:focus{outline:2p
 .sort-arrow{opacity:.7;font-size:9px;margin-inline-start:3px;}
 .filter-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;}
 .filter-bar input{border:1.5px solid var(--border);border-radius:6px;padding:7px 10px;font-size:12.5px;font-family:inherit;flex:1;min-width:200px;}
+.eos-result-card{border-radius:8px;padding:14px 16px;margin-bottom:10px;}
+.eos-kpi{font-size:22px;font-weight:800;margin:4px 0;}
+.eos-kpi-lbl{font-size:10.5px;font-weight:700;opacity:.8;text-transform:uppercase;letter-spacing:.5px;}
+.eos-breakdown{font-size:11px;opacity:.75;margin-top:3px;}
+.eos-year-row{background:#f5f8ff;border-bottom:1px solid #eef0f5;}
+.eos-year-row td{font-weight:700;color:var(--navy2);}
+.eos-month-row td{font-size:11.5px;}
+.eos-total-row td{background:#e8f0ff;font-weight:700;color:var(--navy2);border-top:2px solid var(--navy2);}
+.eos-badge{display:inline-block;padding:2px 9px;border-radius:8px;font-size:10.5px;font-weight:700;}
+.eos-badge-active{background:#dff6e8;color:var(--green);}
+.eos-badge-terminated{background:#fdecea;color:var(--red);}
+.eos-badge-resigned{background:#fff3e0;color:#c07020;}
+.eos-badge-pending{background:#e8f0ff;color:var(--navy2);}
 .badge{display:inline-block;padding:2px 9px;border-radius:9px;font-size:10px;font-weight:600;background:#ddeeff;color:var(--navy2);}
 .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;padding:10px 20px;border-radius:8px;font-size:12.5px;z-index:9999;}
 .perm-note{font-size:10.5px;color:var(--muted);margin-bottom:10px;}
@@ -368,25 +381,112 @@ table.dtbl input[type=number]:focus,table.dtbl input[type=text]:focus{outline:2p
     </div>
 
     <div id="page-eos" class="page-content hide">
-      <div class="section-card">
-        <div class="perm-note" id="eosPermNote"></div>
-        <div class="form-grid" id="eosForm">
-          <div class="fg"><label>الموظف*</label><select id="eos_employeeId"></select></div>
-          <div class="fg"><label>تاريخ انتهاء الخدمة*</label><input id="eos_endDate" type="date"></div>
-          <div class="fg"><label>السبب*</label>
-            <select id="eos_reason">
-              <option value="terminated">فصل من صاحب العمل / Termination by Employer (Art. 87)</option>
-              <option value="contract_end">انتهاء عقد / Contract Ended (Art. 87)</option>
-              <option value="resigned">استقالة / Resignation (Art. 84)</option>
-              <option value="mutual">اتفاق طرفين / Mutual Agreement (Art. 87)</option>
-              <option value="death">وفاة / Death (Art. 87)</option>
-              <option value="disability">عجز / Disability (Art. 87)</option>
-            </select>
+      <div class="section-card" style="background:linear-gradient(135deg,var(--navy) 0%,var(--navy2) 100%);color:#fff;">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+          <div>
+            <div style="font-size:15px;font-weight:800;margin-bottom:3px;">🏁 مكافأة نهاية الخدمة <span class="bl">End of Service Gratuity</span></div>
+            <div style="font-size:11.5px;opacity:.85;">نظام العمل السعودي — المادتان 84 و87 <span class="bl">KSA Labor Law — Article 84 & 87</span></div>
           </div>
-          <div class="fg"><label>&nbsp;</label><button class="btn btn-navy" onclick="createEos()">+ احتساب المكافأة</button></div>
         </div>
       </div>
-      <div class="section-card"><div class="tbl-wrap"><table class="dtbl" id="eosTable"></table></div></div>
+
+      <div class="section-card" style="background:#fff8e0;border:1.5px solid var(--gold);">
+        <div style="font-size:12px;font-weight:700;color:#8a5c00;margin-bottom:10px;">📋 مرجع نظام العمل السعودي <span class="bl">KSA Labor Law Policy Reference</span></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;font-size:11.5px;color:#555;">
+          <div>
+            <div style="font-weight:700;color:var(--navy2);margin-bottom:5px;">المادة 84 — استقالة الموظف <span class="bl">Article 84 — Resigned</span></div>
+            <ul style="padding-right:16px;line-height:1.8;">
+              <li>أقل من سنتين ← <strong>لا يستحق</strong> <span class="bl">Less than 2 years → No entitlement</span></li>
+              <li>2-5 سنوات ← <strong>⅓ من أجر 10 أيام لكل سنة</strong> <span class="bl">2-5 yrs → ⅓ of 10-day wage/yr</span></li>
+              <li>5-10 سنوات ← <strong>⅔ من أجر 10 أيام لكل سنة</strong> <span class="bl">5-10 yrs → ⅔ of 10-day wage/yr</span></li>
+              <li>10+ سنوات ← <strong>أجر 10 أيام كامل لكل سنة</strong> <span class="bl">10+ yrs → Full 10-day wage/yr</span></li>
+            </ul>
+          </div>
+          <div>
+            <div style="font-weight:700;color:var(--navy2);margin-bottom:5px;">المادة 87 — فصل من صاحب العمل <span class="bl">Article 87 — Terminated</span></div>
+            <ul style="padding-right:16px;line-height:1.8;">
+              <li>أول 5 سنوات ← <strong>نصف شهر لكل سنة</strong> <span class="bl">First 5 yrs → Half-month/yr</span></li>
+              <li>بعد 5 سنوات ← <strong>شهر كامل لكل سنة</strong> <span class="bl">After 5 yrs → Full month/yr</span></li>
+              <li>الجزء من السنة ← <strong>يُحسب بالأشهر</strong> <span class="bl">Partial year → Prorated by months</span></li>
+              <li>الأساس: <strong>آخر راتب أساسي + بدل سكن</strong> <span class="bl">Basis: Last basic + housing</span></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+        <div class="section-card">
+          <div class="perm-note" id="eosPermNote"></div>
+          <div class="section-title">🧮 حاسبة نهاية الخدمة <span class="bl">EOS Calculator</span></div>
+          <div class="form-grid" id="eosForm">
+            <div class="fg" style="grid-column:span 2;"><label>الموظف*<span class="bl">Employee*</span></label><select id="eos_employeeId" onchange="onEosEmpChange()"><option value="">— اختر موظفاً / Select Employee —</option></select></div>
+            <div class="fg"><label>تاريخ التعيين<span class="bl">Hire Date</span></label><input id="eos_hire" type="date" disabled style="direction:ltr;"></div>
+            <div class="fg"><label>تاريخ انتهاء الخدمة*<span class="bl">End Date*</span></label><input id="eos_endDate" type="date" onchange="calcEosPreview()" style="direction:ltr;"></div>
+            <div class="fg"><label>الراتب الأساسي<span class="bl">Basic Salary</span></label><input id="eos_basic" type="number" disabled style="direction:ltr;font-weight:700;"></div>
+            <div class="fg"><label>بدل السكن<span class="bl">Housing Allowance</span></label><input id="eos_housing" type="number" disabled style="direction:ltr;"></div>
+            <div class="fg" style="grid-column:span 2;"><label>السبب*<span class="bl">Reason*</span></label>
+              <select id="eos_reason" onchange="calcEosPreview()">
+                <option value="terminated">فصل من صاحب العمل / Termination by Employer (Art. 87)</option>
+                <option value="contract_end">انتهاء عقد / Contract Ended (Art. 87)</option>
+                <option value="resigned">استقالة / Resignation (Art. 84)</option>
+                <option value="mutual">اتفاق طرفين / Mutual Agreement (Art. 87)</option>
+                <option value="death">وفاة / Death (Art. 87)</option>
+                <option value="disability">عجز / Disability (Art. 87)</option>
+              </select>
+            </div>
+            <div class="fg"><label>مستحقات أخرى<span class="bl">Other Dues</span></label><input id="eos_other" type="number" value="0" onchange="calcEosPreview()" style="direction:ltr;"></div>
+            <div class="fg"><label>خصومات<span class="bl">Deductions</span></label><input id="eos_deductions" type="number" value="0" onchange="calcEosPreview()" style="direction:ltr;"></div>
+          </div>
+          <div id="eos_policy_note" style="font-size:11px;color:var(--muted);background:#f5f8ff;padding:8px 12px;border-radius:6px;border-right:3px solid var(--navy2);"></div>
+        </div>
+        <div id="eos_result_panel" style="display:flex;flex-direction:column;gap:12px;">
+          <div class="section-card" style="text-align:center;color:var(--muted);padding:40px;font-size:13px;">
+            اختر موظفاً وأدخل البيانات لحساب مكافأة نهاية الخدمة.<br><span class="bl">Select an employee and fill in the details to calculate EOS.</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
+          <div style="font-weight:800;font-size:14px;">📋 سجل الاستحقاقات <span class="bl">EOS Accruals Register</span></div>
+          <div style="display:flex;gap:7px;flex-wrap:wrap;align-items:center;">
+            <select id="eos_view" onchange="renderEosRegister()" style="border:1.5px solid var(--border);border-radius:6px;padding:5px 9px;font-size:12px;font-family:inherit;">
+              <option value="monthly">الشهري / Monthly Accrual</option>
+              <option value="yearly">السنوي / Yearly Summary</option>
+              <option value="detail">التفاصيل / Full Detail</option>
+              <option value="transactions">سجل المعاملات / Transactions Log</option>
+            </select>
+            <select id="eos_month_filter" onchange="renderEosRegister()" style="border:1.5px solid var(--border);border-radius:6px;padding:5px 9px;font-size:12px;font-family:inherit;">
+              <option value="all">كل الأشهر / All Months</option>
+              <option value="1">يناير / January</option><option value="2">فبراير / February</option>
+              <option value="3">مارس / March</option><option value="4">أبريل / April</option>
+              <option value="5">مايو / May</option><option value="6">يونيو / June</option>
+              <option value="7">يوليو / July</option><option value="8">أغسطس / August</option>
+              <option value="9">سبتمبر / September</option><option value="10">أكتوبر / October</option>
+              <option value="11">نوفمبر / November</option><option value="12">ديسمبر / December</option>
+            </select>
+            <select id="eos_year_filter" onchange="renderEosRegister()" style="border:1.5px solid var(--border);border-radius:6px;padding:5px 9px;font-size:12px;font-family:inherit;"><option value="all">كل السنوات / All Years</option></select>
+            <select id="eos_branch_filter" onchange="renderEosRegister()" style="border:1.5px solid var(--border);border-radius:6px;padding:5px 9px;font-size:12px;font-family:inherit;"><option value="all">كل الفروع / All Branches</option></select>
+            <select id="eos_status_filter" onchange="renderEosRegister()" style="border:1.5px solid var(--border);border-radius:6px;padding:5px 9px;font-size:12px;font-family:inherit;">
+              <option value="all">كل الحالات / All Status</option>
+              <option value="Pending">Pending</option><option value="Approved">Approved</option><option value="Paid">Paid</option><option value="Accrual">Accrual</option>
+            </select>
+            <button class="btn btn-navy btn-sm" onclick="saveEosSnapshot()">💾 لقطة <span class="bl">Snapshot</span></button>
+            <button class="btn btn-gold btn-sm" onclick="printEosRegister()">🖨️ طباعة <span class="bl">Print</span></button>
+            <button class="btn btn-outline btn-sm" onclick="exportEosExcel()">📤 Excel</button>
+          </div>
+        </div>
+        <div style="display:flex;gap:12px;margin-bottom:12px;flex-wrap:wrap;" id="eos_totals_bar"></div>
+        <div class="tbl-wrap" id="eos_table_wrap"></div>
+      </div>
+
+      <div class="section-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
+          <div style="font-weight:800;font-size:14px;">🗂️ السجلات المحفوظة <span class="bl">Saved EOS Records</span></div>
+          <button class="btn btn-red btn-sm" onclick="clearEosRecords()">🗑️ حذف الكل <span class="bl">Clear All</span></button>
+        </div>
+        <div class="tbl-wrap"><table class="dtbl" id="eosTable"></table></div>
+      </div>
     </div>
 
     <div id="page-orgchart" class="page-content hide">
@@ -1840,43 +1940,440 @@ async function deleteSettlement(id){
 }
 
 // --- End of Service Gratuity ---
+// --- End of Service: client-side preview calc (ported verbatim from the
+// original app's calcServiceDuration/calcKsaEos/calcMonthlyAccrual) so the
+// calculator and the accrual register can compute instantly without a
+// server round-trip per keystroke. The server (src/payrollCalc.js) still
+// independently recomputes the real figure whenever a record is saved. ---
+function eosServiceDuration(hireDate, endDate){
+  if (!hireDate || !endDate) return { years:0, months:0, days:0, totalMonths:0, totalDays:0 };
+  const h = new Date(hireDate), e = new Date(endDate);
+  if (e <= h) return { years:0, months:0, days:0, totalMonths:0, totalDays:0 };
+  let years = e.getFullYear()-h.getFullYear();
+  let months = e.getMonth()-h.getMonth();
+  let days = e.getDate()-h.getDate();
+  if (days < 0){ months--; const prevMonth = new Date(e.getFullYear(), e.getMonth(), 0); days += prevMonth.getDate(); }
+  if (months < 0){ years--; months += 12; }
+  const totalDays = Math.floor((e-h)/(1000*60*60*24));
+  const totalMonths = years*12+months+(days>=15?1:0);
+  return { years, months, days, totalDays, totalMonths };
+}
+function eosCalcGratuity(basic, housing, hireDate, endDate, reason){
+  const basis = (Number(basic)||0) + (Number(housing)||0);
+  const dailyRate = basis/30;
+  const dur = eosServiceDuration(hireDate, endDate);
+  const { years, months, days, totalMonths } = dur;
+  let gratuity = 0, ruleApplied = '', breakdown = [];
+  if (reason === 'resigned'){
+    if (totalMonths < 24){
+      ruleApplied = 'Art. 84 — أقل من سنتين → لا يستحق / Less than 2 years → No entitlement';
+    } else {
+      const partialFrac = (months + (days>=15?1:0)) / 12;
+      let tier;
+      if (years < 5){ tier = 1/3; ruleApplied = 'Art. 84 — 2–5 سنوات ← ⅓ من أجر 10 أيام لكل سنة'; }
+      else if (years < 10){ tier = 2/3; ruleApplied = 'Art. 84 — 5–10 سنوات ← ⅔ من أجر 10 أيام لكل سنة'; }
+      else { tier = 1; ruleApplied = 'Art. 84 — 10+ سنوات ← أجر 10 أيام كامل لكل سنة'; }
+      const yearsDecimal = years + partialFrac;
+      gratuity = Math.round(dailyRate*10*yearsDecimal*tier);
+      breakdown = [
+        { label:'الأجر اليومي (الأساس÷30) / Daily Rate', value:dailyRate.toFixed(2)+' SAR' },
+        { label:'مدة الخدمة (سنوات) / Service (Years)', value:yearsDecimal.toFixed(3) },
+        { label:'أجر 10 أيام / 10-day Wage', value:n(Math.round(dailyRate*10))+' SAR' },
+        { label:'نسبة الفئة / Tier Factor', value:(tier*100)+'%' },
+        { label:'المكافأة / Gratuity', value:n(gratuity)+' SAR' },
+      ];
+    }
+  } else {
+    const fullYears = years;
+    const partialMonths = months + (days>=15?1:0);
+    const tier1Years = Math.min(fullYears, 5);
+    const tier2Years = Math.max(fullYears-5, 0);
+    const g1 = tier1Years*basis*0.5;
+    const g2 = tier2Years*basis*1.0;
+    const gPartial = partialMonths > 0 ? (partialMonths/12)*basis*(fullYears<5?0.5:1.0) : 0;
+    gratuity = Math.round(g1+g2+gPartial);
+    ruleApplied = 'Art. 87 — نصف شهر (≤5 سنوات) + شهر كامل (>5 سنوات) لكل سنة';
+    breakdown = [
+      { label:'الأساس (أساسي+سكن) / Basis', value:n(basis)+' SAR/month' },
+      { label:`الفئة 1 (≤5 سنوات): ${tier1Years} × نصف شهر`, value:n(Math.round(g1))+' SAR' },
+      { label:`الفئة 2 (>5 سنوات): ${tier2Years} × شهر`, value:n(Math.round(g2))+' SAR' },
+      { label:`جزء من السنة (${partialMonths} أشهر)`, value:n(Math.round(gPartial))+' SAR' },
+      { label:'إجمالي المكافأة / Total Gratuity', value:n(gratuity)+' SAR' },
+    ];
+  }
+  return { gratuity, ruleApplied, breakdown, basis, dailyRate, dur };
+}
+function eosMonthlyAccrual(basic, housing, totalMonths){
+  const basis = (Number(basic)||0) + (Number(housing)||0);
+  if (totalMonths <= 0) return 0;
+  const years = totalMonths/12;
+  const tier1Y = Math.min(years, 5), tier2Y = Math.max(years-5, 0);
+  return (tier1Y*basis*0.5 + tier2Y*basis) / totalMonths;
+}
+
+let _eosEmployeesCache = [];
+let _eosBranchesCache = [];
+let _eosRecordsCache = [];
+let _lastEosCalc = null;
+
 async function loadEosPage(){
   const canEdit = canManage('managePayroll');
   document.getElementById('eosForm').style.display = canEdit ? '' : 'none';
-  document.getElementById('eosPermNote').textContent = canEdit ? 'الحساب يتم بالسيرفر حسب نظام العمل السعودي (المادة ٨٤/٨٧) اعتمادًا على تاريخ التعيين الفعلي المسجل للموظف.' : 'صلاحيتك الحالية للمشاهدة فقط في هذه الشركة.';
-  if (canEdit) populateEmployeeSelect('eos_employeeId');
-  await loadEos();
-}
-async function loadEos(){
-  const canEdit = canManage('managePayroll');
+  document.getElementById('eosPermNote').textContent = canEdit ? 'الحساب أولي فوري في المتصفح، لكن الرقم النهائي المحفوظ يُحتسب ويُتحقق منه دائماً في السيرفر. / Preview is instant in the browser; the saved figure is always computed and verified server-side.' : 'صلاحيتك الحالية للمشاهدة فقط في هذه الشركة.';
   try{
-    const rows = await api(`/companies/${activeCompanyId}/eos`);
-    let html = `<thead><tr><th>الموظف</th><th>السبب</th><th>سنوات الخدمة</th><th>المكافأة</th><th>الصافي</th><th>الحالة</th>${canEdit?'<th>إجراء</th>':''}</tr></thead><tbody>`;
-    rows.forEach(r => {
-      const reasonLabel = { terminated:'فصل من صاحب العمل', contract_end:'انتهاء عقد', resigned:'استقالة', mutual:'اتفاق طرفين', death:'وفاة', disability:'عجز' }[r.reason] || r.reason;
-      const nextStatus = { Pending:'Approved', Approved:'Paid' }[r.status];
-      html += `<tr><td style="text-align:right;">${esc(r.namear)}</td><td>${esc(reasonLabel)}</td><td>${esc(r.hire||'-')} → ${esc(r.end||'-')}</td><td style="font-weight:700;">${esc(r.gratuity)}</td><td style="font-weight:700;color:var(--green);">${esc(r.netEos)}</td><td><span class="badge">${esc(r.status)}</span></td>`;
-      if (canEdit) html += `<td>${nextStatus ? `<button class="btn btn-outline btn-sm" onclick="advanceEosStatus(${r.id}, '${nextStatus}')">→ ${esc(nextStatus)}</button>` : '-'}</td>`;
-      html += `</tr>`;
-    });
-    document.getElementById('eosTable').innerHTML = html + '</tbody>';
+    [_eosEmployeesCache, _eosBranchesCache, _eosRecordsCache] = await Promise.all([
+      api(`/companies/${activeCompanyId}/employees`),
+      api(`/companies/${activeCompanyId}/branches`),
+      api(`/companies/${activeCompanyId}/eos`),
+    ]);
+  }catch(e){ toast(e.message, true); return; }
+  populateEosEmpDropdown();
+  populateEosFilterDropdowns();
+  renderEosRegister();
+  renderEosSavedList();
+}
+function populateEosEmpDropdown(){
+  const sel = document.getElementById('eos_employeeId');
+  sel.innerHTML = '<option value="">— اختر موظفاً / Select Employee —</option>' +
+    _eosEmployeesCache.map(e => `<option value="${e.id}">${esc(e.empno||'—')} | ${esc(e.namear)} | ${esc(e.dept||'')}</option>`).join('');
+}
+function populateEosFilterDropdowns(){
+  const yearSel = document.getElementById('eos_year_filter');
+  const years = new Set();
+  const curYear = new Date().getFullYear();
+  _eosEmployeesCache.forEach(e => { if (e.hire) years.add(new Date(e.hire).getFullYear()); });
+  for (let y = curYear-5; y <= curYear; y++) years.add(y);
+  yearSel.innerHTML = '<option value="all">كل السنوات / All Years</option>' +
+    [...years].sort().map(y => `<option value="${y}">${y}</option>`).join('');
+  const brSel = document.getElementById('eos_branch_filter');
+  brSel.innerHTML = '<option value="all">كل الفروع / All Branches</option>' +
+    _eosBranchesCache.map(b => `<option value="${b.id}">${esc(b.namear)}</option>`).join('');
+}
+function onEosEmpChange(){
+  const id = Number(document.getElementById('eos_employeeId').value);
+  const emp = _eosEmployeesCache.find(e => e.id === id);
+  if (!emp) return;
+  document.getElementById('eos_hire').value = emp.hire || '';
+  document.getElementById('eos_basic').value = emp.basic || 0;
+  document.getElementById('eos_housing').value = emp.housing || 0;
+  document.getElementById('eos_endDate').value = new Date().toISOString().slice(0,10);
+  calcEosPreview();
+}
+const EOS_REASON_LABEL = { terminated:'فصل من صاحب العمل / Termination (Art.87)', contract_end:'انتهاء عقد / Contract End (Art.87)', resigned:'استقالة / Resignation (Art.84)', mutual:'اتفاق طرفين / Mutual Agreement', death:'وفاة / Death', disability:'عجز / Disability', snapshot:'لقطة / Snapshot' };
+function calcEosPreview(){
+  const empId = Number(document.getElementById('eos_employeeId').value);
+  const hire = document.getElementById('eos_hire').value;
+  const end = document.getElementById('eos_endDate').value;
+  const basic = parseFloat(document.getElementById('eos_basic').value) || 0;
+  const housing = parseFloat(document.getElementById('eos_housing').value) || 0;
+  const reason = document.getElementById('eos_reason').value;
+  const otherDues = parseFloat(document.getElementById('eos_other').value) || 0;
+  const deductions = parseFloat(document.getElementById('eos_deductions').value) || 0;
+  const panel = document.getElementById('eos_result_panel');
+  const noteEl = document.getElementById('eos_policy_note');
+
+  if (!empId || !hire || !end || !(basic+housing)){
+    panel.innerHTML = `<div class="section-card" style="text-align:center;color:var(--muted);padding:40px;font-size:13px;">اختر موظفاً وأدخل البيانات لحساب مكافأة نهاية الخدمة.<br><span class="bl">Select an employee and fill in the details to calculate EOS.</span></div>`;
+    noteEl.textContent = '';
+    _lastEosCalc = null;
+    return;
+  }
+
+  const result = eosCalcGratuity(basic, housing, hire, end, reason);
+  const { gratuity, ruleApplied, breakdown, dur } = result;
+  const { years, months, days, totalMonths } = dur;
+  const netEos = gratuity + otherDues - deductions;
+  const monthlyAccrual = eosMonthlyAccrual(basic, housing, totalMonths);
+  noteEl.textContent = ruleApplied || '';
+
+  panel.innerHTML = `
+  <div class="eos-result-card" style="background:linear-gradient(135deg,var(--navy) 0%,var(--navy2) 100%);color:#fff;">
+    <div class="eos-kpi-lbl">مدة الخدمة <span class="bl">Service Duration</span></div>
+    <div class="eos-kpi">${years}Y ${months}M ${days}D</div>
+    <div class="eos-breakdown">${totalMonths} شهر إجمالاً &nbsp;|&nbsp; الأساس: ${n(basic+housing)} ريال/شهر</div>
+    <div style="margin-top:8px;"><span class="eos-badge eos-badge-active">${esc(EOS_REASON_LABEL[reason]||reason)}</span></div>
+  </div>
+  <div class="eos-result-card" style="background:#e8fff0;border:2px solid var(--green);">
+    <div class="eos-kpi-lbl" style="color:var(--green);">مكافأة نهاية الخدمة <span class="bl">EOS Gratuity</span></div>
+    <div class="eos-kpi" style="color:var(--green);">${n(gratuity)} SAR</div>
+    <div class="eos-breakdown" style="color:#555;">مستحقات أخرى: +${n(otherDues)} | خصومات: -${n(deductions)}</div>
+    <div style="font-size:11px;font-weight:700;color:var(--green);margin-top:6px;border-top:1px solid #b2dfcc;padding-top:6px;">
+      الصافي / NET TOTAL: <span style="font-size:17px;">${n(netEos)} SAR</span>
+    </div>
+  </div>
+  <div class="eos-result-card" style="background:#fff8e0;border:1.5px solid var(--gold);">
+    <div class="eos-kpi-lbl" style="color:#8a5c00;">الاستحقاق الشهري <span class="bl">Monthly Accrual (Provision)</span></div>
+    <div class="eos-kpi" style="color:var(--gold);">${n(Math.round(monthlyAccrual))} SAR/mo</div>
+    <div class="eos-breakdown" style="color:#555;">التزام محاسبي متراكم شهرياً <span class="bl">IAS 19 liability accrued per month</span></div>
+    <div style="font-size:10.5px;color:#8a5c00;margin-top:5px;">الاستحقاق السنوي / Annual Provision: ${n(Math.round(monthlyAccrual*12))} SAR</div>
+  </div>
+  <div class="section-card" style="margin:0;">
+    <div style="font-size:11.5px;font-weight:700;color:var(--navy2);margin-bottom:8px;">📐 تفاصيل الحساب <span class="bl">Calculation Breakdown</span></div>
+    <table style="width:100%;font-size:11.5px;border-collapse:collapse;">
+      ${breakdown.map(r=>`<tr><td style="padding:4px 8px;border-bottom:1px solid #eef0f5;color:#555;">${esc(r.label)}</td><td style="padding:4px 8px;border-bottom:1px solid #eef0f5;text-align:left;direction:ltr;font-weight:700;font-family:monospace;">${esc(r.value)}</td></tr>`).join('')}
+      <tr style="background:#e8f0ff;"><td style="padding:5px 8px;font-weight:700;color:var(--navy2);">مستحقات أخرى / Other Dues</td><td style="padding:5px 8px;text-align:left;direction:ltr;font-weight:700;">+${n(otherDues)} SAR</td></tr>
+      <tr style="background:#fdecea;"><td style="padding:5px 8px;font-weight:700;color:var(--red);">خصومات / Deductions</td><td style="padding:5px 8px;text-align:left;direction:ltr;font-weight:700;color:var(--red);">-${n(deductions)} SAR</td></tr>
+      <tr style="background:#1a3a6b;"><td style="padding:7px 8px;font-weight:800;color:#fff;font-size:13px;">الصافي المستحق / NET PAYABLE</td><td style="padding:7px 8px;text-align:left;direction:ltr;font-weight:800;color:#fff;font-size:13px;">${n(netEos)} SAR</td></tr>
+    </table>
+    <div style="margin-top:10px;">
+      <button class="btn btn-gold" onclick="saveCurrentEosRecord()">💾 حفظ السجل <span class="bl">Save Record</span></button>
+    </div>
+  </div>`;
+
+  _lastEosCalc = { empId, endDate: end, reason, otherDues, deductions };
+}
+async function saveCurrentEosRecord(){
+  if (!_lastEosCalc) return toast('احسب أولاً / Calculate first', true);
+  try{
+    await api(`/companies/${activeCompanyId}/eos`, { method:'POST', body: JSON.stringify({
+      employeeId: _lastEosCalc.empId, endDate: _lastEosCalc.endDate, reason: _lastEosCalc.reason,
+      otherDues: _lastEosCalc.otherDues, deductions: _lastEosCalc.deductions,
+    }) });
+    toast('تم حفظ السجل');
+    _eosRecordsCache = await api(`/companies/${activeCompanyId}/eos`);
+    renderEosSavedList(); renderEosRegister();
   }catch(e){ toast(e.message, true); }
 }
-async function createEos(){
+async function saveEosSnapshot(){
   try{
-    const body = {
-      employeeId: Number(document.getElementById('eos_employeeId').value) || undefined,
-      endDate: document.getElementById('eos_endDate').value,
-      reason: document.getElementById('eos_reason').value,
-    };
-    if (!body.employeeId || !body.endDate) return toast('الموظف وتاريخ الانتهاء مطلوبان', true);
-    await api(`/companies/${activeCompanyId}/eos`, { method:'POST', body: JSON.stringify(body) });
-    toast('تم احتساب المكافأة'); loadEos();
+    const data = await api(`/companies/${activeCompanyId}/eos/snapshot`, { method:'POST' });
+    toast(`تم حفظ لقطة لـ ${data.saved} موظف`);
+    _eosRecordsCache = await api(`/companies/${activeCompanyId}/eos`);
+    renderEosSavedList(); renderEosRegister();
+  }catch(e){ toast(e.message, true); }
+}
+async function clearEosRecords(){
+  if (!confirm('حذف جميع السجلات المحفوظة نهائياً؟ / Permanently delete all saved records?')) return;
+  try{
+    await api(`/companies/${activeCompanyId}/eos`, { method:'DELETE' });
+    toast('تم حذف جميع السجلات');
+    _eosRecordsCache = [];
+    renderEosSavedList(); renderEosRegister();
   }catch(e){ toast(e.message, true); }
 }
 async function advanceEosStatus(id, status){
-  try{ await api(`/companies/${activeCompanyId}/eos/${id}`, { method:'PATCH', body: JSON.stringify({ status }) }); loadEos(); }
-  catch(e){ toast(e.message, true); }
+  try{
+    await api(`/companies/${activeCompanyId}/eos/${id}`, { method:'PATCH', body: JSON.stringify({ status }) });
+    _eosRecordsCache = await api(`/companies/${activeCompanyId}/eos`);
+    renderEosSavedList(); renderEosRegister();
+  }catch(e){ toast(e.message, true); }
+}
+async function deleteEosRecord(id){
+  try{
+    await api(`/companies/${activeCompanyId}/eos/${id}`, { method:'DELETE' });
+    _eosRecordsCache = _eosRecordsCache.filter(r => r.id !== id);
+    renderEosSavedList(); renderEosRegister();
+  }catch(e){ toast(e.message, true); }
+}
+function renderEosSavedList(){
+  const canEdit = canManage('managePayroll');
+  const rows = _eosRecordsCache;
+  if (!rows.length){
+    document.getElementById('eosTable').innerHTML = '';
+    return;
+  }
+  const nextStatus = { Pending:'Approved', Approved:'Paid' };
+  let html = `<thead><tr><th>الموظف</th><th>السبب</th><th>من → إلى</th><th>المكافأة</th><th>الصافي</th><th>الاستحقاق الشهري</th><th>الحالة</th>${canEdit?'<th>إجراء</th><th>حذف</th>':''}</tr></thead><tbody>`;
+  rows.forEach(r => {
+    const dur = eosServiceDuration(r.hire, r.end);
+    const monthly = eosMonthlyAccrual(r.basic, r.housing, dur.totalMonths);
+    const badgeClass = r.status==='Paid'||r.status==='Approved' ? 'eos-badge-active' : r.status==='Accrual' ? 'eos-badge-pending' : 'eos-badge-pending';
+    html += `<tr><td style="text-align:right;">${esc(r.namear)}</td><td>${esc(EOS_REASON_LABEL[r.reason]||r.reason)}</td><td style="direction:ltr;font-size:11px;">${esc(r.hire||'-')} → ${esc(r.end||'-')}</td><td style="font-weight:700;">${n(r.gratuity)}</td><td style="font-weight:700;color:var(--green);">${n(r.netEos)}</td><td style="color:var(--gold);font-weight:700;">${n(Math.round(monthly))}</td><td><span class="eos-badge ${badgeClass}">${esc(r.status)}</span></td>`;
+    if (canEdit){
+      html += `<td>${nextStatus[r.status] ? `<button class="btn btn-outline btn-sm" onclick="advanceEosStatus(${r.id}, '${nextStatus[r.status]}')">→ ${nextStatus[r.status]}</button>` : '-'}</td>`;
+      html += `<td><button class="btn btn-red btn-sm" onclick="deleteEosRecord(${r.id})">🗑</button></td>`;
+    }
+    html += `</tr>`;
+  });
+  document.getElementById('eosTable').innerHTML = html + '</tbody>';
+}
+
+// --- Accruals Register (Monthly / Yearly / Detail / Transactions) ---
+function eosFilteredActiveEmployees(){
+  const branchFilter = document.getElementById('eos_branch_filter').value;
+  const monthFilter = document.getElementById('eos_month_filter').value;
+  let emps = _eosEmployeesCache.filter(e => e.status === 'Active' && e.hire && (Number(e.basic)||Number(e.housing)));
+  if (branchFilter !== 'all') emps = emps.filter(e => String(e.branchId) === branchFilter);
+  if (monthFilter !== 'all') emps = emps.filter(e => e.hire && (new Date(e.hire).getMonth()+1) === parseInt(monthFilter));
+  return emps;
+}
+function renderEosRegister(){
+  const view = document.getElementById('eos_view').value;
+  const yearFilter = document.getElementById('eos_year_filter').value;
+  const statusFilter = document.getElementById('eos_status_filter').value;
+  const monthFilter = document.getElementById('eos_month_filter').value;
+  const branchFilter = document.getElementById('eos_branch_filter').value;
+  const today = new Date().toISOString().slice(0,10);
+  const emps = eosFilteredActiveEmployees();
+  if (view === 'transactions') return renderEosTransactions(statusFilter, monthFilter, yearFilter, branchFilter);
+  if (view === 'yearly') return renderEosYearly(emps, today, yearFilter);
+  if (view === 'detail') return renderEosDetail(emps, today);
+  renderEosMonthly(emps, today);
+}
+function renderEosMonthly(emps, today){
+  let totAccrual = 0, totLiability = 0, rows = '';
+  emps.forEach((emp, i) => {
+    const dur = eosServiceDuration(emp.hire, today);
+    const monthly = eosMonthlyAccrual(emp.basic, emp.housing, dur.totalMonths);
+    const eos = eosCalcGratuity(emp.basic, emp.housing, emp.hire, today, 'terminated');
+    totAccrual += monthly; totLiability += eos.gratuity;
+    rows += `<tr class="eos-month-row">
+      <td>${i+1}</td><td style="font-family:monospace;">${esc(emp.empno||'—')}</td>
+      <td style="text-align:right;font-weight:600;">${esc(emp.namear)}</td><td>${esc(emp.dept||'—')}</td>
+      <td style="direction:ltr;">${esc(emp.hire||'—')}</td><td style="font-weight:700;">${eos.dur.years}Y ${eos.dur.months}M</td>
+      <td style="color:var(--green);font-weight:700;">${n(Math.round(monthly))} SAR</td>
+      <td style="color:var(--navy2);font-weight:700;">${n(eos.gratuity)} SAR</td>
+      <td>${n(emp.basic||0)}</td><td>${n(emp.housing||0)}</td>
+      <td><span class="eos-badge eos-badge-active">نشط / Active</span></td></tr>`;
+  });
+  document.getElementById('eos_totals_bar').innerHTML = `
+    <div style="background:#e8fff0;border-radius:7px;padding:8px 14px;font-size:12px;"><strong style="color:var(--green);">الاستحقاق الشهري / Monthly Accrual:</strong> ${n(Math.round(totAccrual))} SAR</div>
+    <div style="background:#e8f0ff;border-radius:7px;padding:8px 14px;font-size:12px;"><strong style="color:var(--navy2);">إجمالي المكافأة / Total EOS Liability:</strong> ${n(Math.round(totLiability))} SAR</div>
+    <div style="background:#fff8e0;border-radius:7px;padding:8px 14px;font-size:12px;"><strong style="color:var(--gold);">الاستحقاق السنوي / Annual Provision:</strong> ${n(Math.round(totAccrual*12))} SAR</div>
+    <div style="background:#f5f5ff;border-radius:7px;padding:8px 14px;font-size:12px;"><strong style="color:#6633cc;">عدد الموظفين / Employees:</strong> ${emps.length}</div>`;
+  document.getElementById('eos_table_wrap').innerHTML = `
+    <table class="dtbl">
+      <thead><tr><th>#</th><th>الرقم الوظيفي</th><th>الاسم</th><th>القسم</th><th>التعيين</th><th>الخدمة</th>
+        <th style="background:#145228;">الاستحقاق الشهري</th><th style="background:#1a3a6b;">إجمالي المكافأة</th>
+        <th>الأساسي</th><th>السكن</th><th>الحالة</th></tr></thead>
+      <tbody>${rows}</tbody>
+      <tfoot><tr class="eos-total-row"><td colspan="6" style="text-align:right;">الإجمالي / TOTAL</td>
+        <td>${n(Math.round(totAccrual))} SAR</td><td>${n(Math.round(totLiability))} SAR</td><td colspan="3"></td></tr></tfoot>
+    </table>`;
+}
+function renderEosYearly(emps, today, yearFilter){
+  let html = `<table class="dtbl"><thead><tr><th>الموظف</th><th>السنة</th><th>الأشهر</th><th>الأساسي</th><th>السكن</th>
+    <th>شهري</th><th>سنوي</th><th>المتراكم</th></tr></thead><tbody>`;
+  let grandTotal = 0;
+  emps.forEach(emp => {
+    const hireYear = new Date(emp.hire||today).getFullYear();
+    const endYear = new Date(today).getFullYear();
+    let cumEos = 0;
+    for (let yr = hireYear; yr <= endYear; yr++){
+      if (yearFilter !== 'all' && yr !== parseInt(yearFilter)) continue;
+      const yearStart = new Date(Math.max(new Date(emp.hire), new Date(`${yr}-01-01`)));
+      const yearEnd = new Date(Math.min(new Date(today), new Date(`${yr}-12-31`)));
+      const monthsInYear = Math.max(0, Math.round((yearEnd-yearStart)/(1000*60*60*24*30.44)));
+      const dur = eosServiceDuration(emp.hire, yearEnd.toISOString().slice(0,10));
+      const monthly = eosMonthlyAccrual(emp.basic, emp.housing, dur.totalMonths);
+      const yearlyAccrual = monthly*monthsInYear;
+      cumEos = eosCalcGratuity(emp.basic, emp.housing, emp.hire, yearEnd.toISOString().slice(0,10), 'terminated').gratuity;
+      grandTotal = Math.max(grandTotal, cumEos);
+      html += `<tr class="${yr===endYear?'eos-year-row':'eos-month-row'}">
+        <td style="text-align:right;">${yr===hireYear?`<strong>${esc(emp.namear)}</strong> <span style="font-size:9px;font-family:monospace;">${esc(emp.empno||'')}</span>`:''}</td>
+        <td style="font-weight:700;text-align:center;">${yr}</td><td style="text-align:center;">${monthsInYear}</td>
+        <td>${n(emp.basic||0)}</td><td>${n(emp.housing||0)}</td>
+        <td style="color:var(--green);font-weight:600;">${n(Math.round(monthly))} SAR</td>
+        <td style="color:var(--navy2);">${n(Math.round(yearlyAccrual))} SAR</td>
+        <td style="font-weight:700;color:var(--gold);">${n(Math.round(cumEos))} SAR</td></tr>`;
+    }
+  });
+  html += '</tbody></table>';
+  document.getElementById('eos_table_wrap').innerHTML = html;
+  document.getElementById('eos_totals_bar').innerHTML = `<div style="background:#e8f0ff;border-radius:7px;padding:8px 14px;font-size:12px;"><strong style="color:var(--navy2);">إجمالي المكافأة (النشطون) / Total EOS Liability (Active):</strong> ${n(Math.round(grandTotal))} SAR</div>`;
+}
+function renderEosDetail(emps, today){
+  let html = `<table class="dtbl"><thead><tr><th>#</th><th>الرقم الوظيفي</th><th>الاسم</th><th>القسم</th>
+    <th>التعيين</th><th>سنوات</th><th>أشهر</th><th>أيام</th><th>الأساسي</th><th>السكن</th><th>الأساس</th>
+    <th>الأجر اليومي</th><th>الاستحقاق الشهري</th><th>المكافأة (م.87)</th></tr></thead><tbody>`;
+  let totMonthly = 0, totEos = 0;
+  emps.forEach((emp, i) => {
+    const dur = eosServiceDuration(emp.hire, today);
+    const eos = eosCalcGratuity(emp.basic, emp.housing, emp.hire, today, 'terminated');
+    const monthly = eosMonthlyAccrual(emp.basic, emp.housing, dur.totalMonths);
+    totMonthly += monthly; totEos += eos.gratuity;
+    html += `<tr class="eos-month-row">
+      <td>${i+1}</td><td style="font-family:monospace;font-size:9px;">${esc(emp.empno||'—')}</td>
+      <td style="text-align:right;font-size:11px;">${esc(emp.namear)}</td><td style="font-size:11px;">${esc(emp.dept||'—')}</td>
+      <td style="direction:ltr;font-family:monospace;font-size:10.5px;">${esc(emp.hire||'—')}</td>
+      <td style="text-align:center;">${dur.years}</td><td style="text-align:center;">${dur.months}</td><td style="text-align:center;">${dur.days}</td>
+      <td>${n(emp.basic||0)}</td><td>${n(emp.housing||0)}</td><td style="font-weight:600;">${n((emp.basic||0)+(emp.housing||0))}</td>
+      <td style="direction:ltr;">${Math.floor(((emp.basic||0)+(emp.housing||0))/30)} SAR</td>
+      <td style="color:var(--green);font-weight:700;">${n(Math.round(monthly))} SAR</td>
+      <td style="color:var(--navy2);font-weight:700;">${n(eos.gratuity)} SAR</td></tr>`;
+  });
+  html += `</tbody><tfoot><tr class="eos-total-row"><td colspan="12" style="text-align:right;">الإجمالي / TOTAL</td>
+    <td>${n(Math.round(totMonthly))} SAR</td><td>${n(Math.round(totEos))} SAR</td></tr></tfoot></table>`;
+  document.getElementById('eos_table_wrap').innerHTML = html;
+  document.getElementById('eos_totals_bar').innerHTML = '';
+}
+function renderEosTransactions(statusFilter, monthFilter, yearFilter, branchFilter){
+  let records = [..._eosRecordsCache];
+  if (statusFilter !== 'all') records = records.filter(r => r.status === statusFilter);
+  if (monthFilter !== 'all') records = records.filter(r => !r.end || (new Date(r.end).getMonth()+1) === parseInt(monthFilter));
+  if (yearFilter !== 'all') records = records.filter(r => !r.end || new Date(r.end).getFullYear() === parseInt(yearFilter));
+  if (branchFilter !== 'all') records = records.filter(r => { const emp = _eosEmployeesCache.find(e => e.id === r.employeeId); return emp && String(emp.branchId) === branchFilter; });
+  const totGratuity = records.reduce((s,r)=>s+(Number(r.gratuity)||0),0);
+  const totNet = records.reduce((s,r)=>s+(Number(r.netEos)||0),0);
+  const paid = records.filter(r=>r.status==='Paid').length;
+  const pending = records.filter(r=>r.status==='Pending').length;
+  const approved = records.filter(r=>r.status==='Approved').length;
+  document.getElementById('eos_totals_bar').innerHTML = `
+    <div style="background:#e8f0ff;border-radius:7px;padding:7px 13px;font-size:12px;"><strong style="color:var(--navy2);">${records.length}</strong> معاملة / Transactions</div>
+    <div style="background:#e8fff0;border-radius:7px;padding:7px 13px;font-size:12px;"><strong style="color:var(--green);">إجمالي المكافأة / Gratuity Total:</strong> ${n(totGratuity)} SAR</div>
+    <div style="background:#f0f0ff;border-radius:7px;padding:7px 13px;font-size:12px;"><strong style="color:#4422aa;">الصافي المستحق / Net Payable:</strong> ${n(totNet)} SAR</div>
+    <div style="background:#dff6e8;border-radius:7px;padding:7px 13px;font-size:12px;"><strong style="color:var(--green);">مدفوع / Paid: ${paid}</strong></div>
+    <div style="background:#fff3cd;border-radius:7px;padding:7px 13px;font-size:12px;"><strong style="color:#856404;">معلق / Pending: ${pending}</strong></div>
+    <div style="background:#cce5ff;border-radius:7px;padding:7px 13px;font-size:12px;"><strong style="color:#004085;">معتمد / Approved: ${approved}</strong></div>`;
+  if (!records.length){
+    document.getElementById('eos_table_wrap').innerHTML = '<div style="text-align:center;padding:28px;color:var(--muted);">لا توجد معاملات مطابقة للفلاتر المحددة. <br><span class="bl">No EOS transactions found for the selected filters.</span></div>';
+    return;
+  }
+  let html = `<table class="dtbl" style="font-size:11px;"><thead><tr><th>التاريخ</th><th>الموظف</th><th>السبب</th><th>المكافأة</th><th>الصافي</th><th>الحالة</th></tr></thead><tbody>`;
+  records.forEach(r => {
+    html += `<tr><td style="direction:ltr;">${esc(r.calcDate||r.end||'-')}</td><td style="text-align:right;">${esc(r.namear)}</td>
+      <td><span class="eos-badge eos-badge-${r.reason==='terminated'?'terminated':r.reason==='resigned'?'resigned':'pending'}" style="font-size:9px;">${esc(EOS_REASON_LABEL[r.reason]||r.reason||'—')}</span></td>
+      <td style="font-weight:700;">${n(r.gratuity)}</td><td style="font-weight:700;color:var(--green);">${n(r.netEos)}</td>
+      <td><span class="eos-badge eos-badge-${r.status==='Paid'||r.status==='Approved'?'active':'pending'}">${esc(r.status)}</span></td></tr>`;
+  });
+  html += `<tfoot><tr class="eos-total-row"><td colspan="3" style="text-align:right;">الإجمالي / TOTAL</td><td>${n(totGratuity)} SAR</td><td>${n(totNet)} SAR</td><td></td></tr></tfoot></table>`;
+  document.getElementById('eos_table_wrap').innerHTML = html;
+}
+async function exportEosExcel(){
+  try{
+    const res = await fetch(`${API}/companies/${activeCompanyId}/eos/export/xlsx`, { headers: { Authorization: 'Bearer ' + token } });
+    if (!res.ok) throw new Error((await res.json().catch(()=>({}))).error || 'Export failed');
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `eos-accrual-register-${new Date().toISOString().slice(0,10)}.xlsx`;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  }catch(e){ toast(e.message, true); }
+}
+async function printEosRegister(){
+  const wrapHtml = document.getElementById('eos_table_wrap').innerHTML;
+  const totalsHtml = document.getElementById('eos_totals_bar').innerHTML;
+  const view = document.getElementById('eos_view').selectedOptions[0].textContent;
+  try{
+    const company = await api(`/companies/${activeCompanyId}`);
+    const w = window.open('', '_blank');
+    w.document.write(`<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8">
+    <style>@page{size:A4 landscape;margin:10mm;}body{font-family:Arial;font-size:9.5pt;direction:rtl;}
+    .bl{opacity:.6;font-size:.85em;}
+    h2{color:#1a3a6b;text-align:center;margin-bottom:2px;}
+    .sub{text-align:center;font-size:9pt;color:#555;margin-bottom:10px;}
+    table{width:100%;border-collapse:collapse;}th{background:#1a3a6b;color:#fff;padding:6px;font-size:8.5pt;}
+    td{padding:5px;border-bottom:1px solid #ddd;text-align:center;font-size:8.5pt;}
+    tr:nth-child(even) td{background:#f5f8ff;}
+    tfoot td{background:#e8f0ff;font-weight:800;color:#1a3a6b;border-top:2px solid #1a3a6b;}
+    .totals-row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px;}
+    .totals-row>div{background:#f5f8ff;border-radius:7px;padding:8px 14px;font-size:11px;}
+    .toolbar{display:flex;gap:8px;justify-content:center;margin-bottom:12px;}
+    .toolbar button{padding:8px 16px;border:none;border-radius:6px;cursor:pointer;font-size:11.5pt;font-weight:600;font-family:inherit;background:#0f2557;color:#fff;}
+    @media print{.toolbar{display:none;}}
+    </style></head><body>
+    <div class="toolbar"><button onclick="window.print()">🖨️ طباعة / حفظ PDF <span class="bl">Print / Save as PDF</span></button></div>
+    ${customHeaderHtml(company)}
+    <h2>${esc(company.nameAr)} <span class="bl">${esc(company.nameEn)}</span></h2>
+    <div class="sub">سجل استحقاقات مكافأة نهاية الخدمة <span class="bl">EOS Accruals Register</span> — ${esc(view)}</div>
+    <div class="totals-row">${totalsHtml}</div>
+    ${wrapHtml}
+    ${customFooterHtml(company)}
+    </body></html>`);
+    w.document.close();
+    setTimeout(() => w.print(), 400);
+  }catch(e){ toast(e.message, true); }
 }
 
 // --- Org Chart ---
