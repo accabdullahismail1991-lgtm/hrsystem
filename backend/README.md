@@ -236,6 +236,13 @@ active employee's current accrued liability in one shot
 distinct from (and in addition to) the final gratuity-at-termination
 calculator that was already there.
 
+The app is now tablet-responsive: below 980px wide the sidebar becomes an
+off-canvas panel opened with a hamburger button (auto-closes after picking
+a page), two-column layouts (KSA policy box, EOS calculator, print-column
+picker) stack to one column, and modals/tables were checked to confirm
+neither introduces horizontal page overflow at common tablet widths
+(iPad portrait/landscape, Android tablet).
+
 Still only in `../index.html` (single-company, `localStorage`-based):
 backup/restore.
 
