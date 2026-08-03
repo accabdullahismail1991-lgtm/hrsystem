@@ -9,6 +9,7 @@ const CAN = {
   manageBranches: ['owner', 'admin'],
   manageEmployees: ['owner', 'admin', 'hr'],
   manageContractors: ['owner', 'admin', 'hr'],
+  manageLeaves: ['owner', 'admin', 'hr'],
   managePayroll: ['owner', 'admin', 'hr', 'finance'],
   viewFinance: ['owner', 'admin', 'finance'],
   // Any known role may read data scoped to their own company.

@@ -37,7 +37,23 @@ multi-tenancy on top of the standalone payroll app in `../index.html`:
   / Art. 87 (termination) calculation, ported from the original app's
   `calcKsaEos`. The client only picks who and why; the gratuity figure is
   always computed server-side from the employee's real hire date and
-  salary — it cannot be submitted directly.
+  salary — it cannot be submitted directly. **Note:** these article
+  numbers need re-verification — the Executive Regulations reference the
+  resignation-entitlement rule as Article 75, not 84; see the note near
+  the bottom of this file.
+- **Leaves** (`src/leaveCalc.js`, `src/routes/leaves.js`) — per KSA Labor
+  Law Executive Regulations Art. 33-44: annual leave accrues at 21 days/
+  year (30 after 5 continuous years of service), prorated across the
+  current service-year and validated against the accrued balance before a
+  request is accepted; sick leave auto-splits into the statutory pay tiers
+  (30 days full pay / 60 days at ¾ pay / 30 days unpaid, tracked over a
+  rolling 365-day window from each employee's sick-leave history); the
+  fixed-duration occasion leaves (marriage 5d, birth 3d, death 5d, Hajj
+  10d with a 5-year gap and 2-year service minimum, iddah 130d Muslim /
+  15d non-Muslim) are capped at their statutory maximum. Exam and unpaid
+  leave have no system-enforced cap. Every calculation happens
+  server-side (`src/leaveCalc.js`), with a live preview shown in the UI
+  before submission.
 
 This is a genuinely secure design (passwords hashed with bcrypt, JWT auth,
 every write/read checked server-side against the caller's role for that
@@ -242,6 +258,22 @@ a page), two-column layouts (KSA policy box, EOS calculator, print-column
 picker) stack to one column, and modals/tables were checked to confirm
 neither introduces horizontal page overflow at common tablet widths
 (iPad portrait/landscape, Android tablet).
+
+A new "🏖️ الإجازات / Leaves" page covers annual, sick, and the fixed-
+duration occasion leave types (see above) — a request form with a live
+balance/cap preview, and an approve/reject/delete table for HR.
+
+**Pending: EOS article-number verification.** The uploaded Executive
+Regulations PDF (اللائحة التنفيذية) doesn't contain the EOS gratuity
+formula itself — that lives in the base نظام العمل (Labor Law), which
+wasn't part of that upload. It does show that Article 57 of the
+regulations now cites **Article 75** for resignation-based EOS
+entitlement, where this app currently labels the same rule "Article 84"
+throughout (`src/payrollCalc.js`, EOS pages/prints). The user is sending
+the base Labor Law text directly to confirm the current article numbers
+(and reconfirm the ⅓/⅔/full and half-month/full-month percentages are
+unchanged) before anything gets relabeled or recalculated — don't change
+these citations without that source.
 
 Still only in `../index.html` (single-company, `localStorage`-based):
 backup/restore.

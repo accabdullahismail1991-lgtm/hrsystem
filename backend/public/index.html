@@ -162,6 +162,7 @@ table.dtbl input[type=number]:focus,table.dtbl input[type=text]:focus{outline:2p
     <div class="nav-item" data-page="branches" onclick="showPage('branches')">🏬 <span>الفروع<span class="bl">Branches</span></span></div>
     <div class="nav-item" data-page="payroll" onclick="showPage('payroll')">💰 <span>مسيرات الرواتب<span class="bl">Payroll</span></span></div>
     <div class="nav-item" data-page="advances" onclick="showPage('advances')">💳 <span>السلف والتسويات<span class="bl">Advances</span></span></div>
+    <div class="nav-item" data-page="leaves" onclick="showPage('leaves')">🏖️ <span>الإجازات<span class="bl">Leaves</span></span></div>
     <div class="nav-item" data-page="eos" onclick="showPage('eos')">📜 <span>مكافأة نهاية الخدمة<span class="bl">End of Service</span></span></div>
     <div class="nav-item" data-page="orgchart" onclick="showPage('orgchart')">🗂️ <span>الهيكل التنظيمي<span class="bl">Org Chart</span></span></div>
     <div class="nav-item" data-page="kpi" onclick="showPage('kpi')">📊 <span>لوحة المؤشرات<span class="bl">KPI Dashboard</span></span></div>
@@ -399,6 +400,56 @@ table.dtbl input[type=number]:focus,table.dtbl input[type=text]:focus{outline:2p
       </div>
       <div class="section-card"><h3 style="font-size:12.5px;color:var(--navy2);margin-bottom:10px;">السلف</h3><div class="tbl-wrap"><table class="dtbl" id="advTable"></table></div></div>
       <div class="section-card"><h3 style="font-size:12.5px;color:var(--navy2);margin-bottom:10px;">التسويات</h3><div class="tbl-wrap"><table class="dtbl" id="setlTable"></table></div></div>
+    </div>
+
+    <div id="page-leaves" class="page-content hide">
+      <div class="section-card" style="background:#fff8e0;border:1.5px solid var(--gold);">
+        <div style="font-size:12px;font-weight:700;color:#8a5c00;margin-bottom:10px;">📋 مرجع الإجازات — نظام العمل السعودي <span class="bl">Leave Types Reference — KSA Labor Law</span></div>
+        <div class="grid-2col" style="gap:10px 24px;font-size:11px;color:#555;">
+          <div>
+            <div>• <strong>سنوية / Annual:</strong> 21 يوماً، وتصبح 30 يوماً بعد 5 سنوات خدمة متصلة.</div>
+            <div>• <strong>مرضية / Sick:</strong> 30 يوماً بأجر كامل، 60 يوماً بثلاثة أرباع الأجر، 30 يوماً بدون أجر (120 يوماً/سنة).</div>
+            <div>• <strong>زواج / Marriage:</strong> 5 أيام. &nbsp; <strong>ولادة / Birth:</strong> 3 أيام خلال 7 أيام من الولادة.</div>
+          </div>
+          <div>
+            <div>• <strong>وفاة / Death:</strong> حتى 5 أيام (زوج/أصول/فروع).</div>
+            <div>• <strong>الحج / Hajj:</strong> حتى 10 أيام، مرة كل 5 سنوات، بعد سنتي خدمة على الأقل.</div>
+            <div>• <strong>عدة / Iddah:</strong> 4 أشهر و10 أيام (مسلمة)، 15 يوماً (غير مسلمة).</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-card">
+        <div class="perm-note" id="lvPermNote"></div>
+        <div class="form-grid" id="lvForm">
+          <div class="fg"><label>الموظف*<span class="bl">Employee*</span></label><select id="lv_employeeId" onchange="onLeaveEmployeeChange()"></select></div>
+          <div class="fg"><label>نوع الإجازة*<span class="bl">Leave Type*</span></label>
+            <select id="lv_type" onchange="onLeaveEmployeeChange()">
+              <option value="annual">سنوية / Annual</option>
+              <option value="sick">مرضية / Sick</option>
+              <option value="marriage">زواج / Marriage</option>
+              <option value="birth">ولادة / Birth</option>
+              <option value="death">وفاة / Death</option>
+              <option value="hajj">الحج / Hajj</option>
+              <option value="exam">امتحان / Exam</option>
+              <option value="iddah_muslim">عدة (مسلمة) / Iddah (Muslim)</option>
+              <option value="iddah_nonmuslim">عدة (غير مسلمة) / Iddah (Non-Muslim)</option>
+              <option value="unpaid">بدون أجر / Unpaid</option>
+              <option value="other">أخرى / Other</option>
+            </select>
+          </div>
+          <div class="fg"><label>من تاريخ*<span class="bl">Start Date*</span></label><input id="lv_start" type="date" onchange="onLeaveEmployeeChange()" style="direction:ltr;"></div>
+          <div class="fg"><label>إلى تاريخ*<span class="bl">End Date*</span></label><input id="lv_end" type="date" onchange="onLeaveEmployeeChange()" style="direction:ltr;"></div>
+          <div class="fg" style="grid-column:span 2;"><label>ملاحظات<span class="bl">Notes</span></label><input id="lv_notes"></div>
+          <div class="fg"><label>&nbsp;</label><button class="btn btn-navy" onclick="createLeaveRequest()">+ تقديم طلب إجازة <span class="bl">Submit</span></button></div>
+        </div>
+        <div id="lv_balanceInfo" style="font-size:11.5px;color:var(--muted);background:#f5f8ff;padding:8px 12px;border-radius:6px;border-right:3px solid var(--navy2);"></div>
+      </div>
+
+      <div class="section-card">
+        <div class="filter-bar"><input id="lv_filter" placeholder="🔍 بحث بالاسم/النوع/الحالة... / Search Name/Type/Status..." oninput="renderLeaveTable()"></div>
+        <div class="tbl-wrap"><table class="dtbl" id="lvTable"></table></div>
+      </div>
     </div>
 
     <div id="page-eos" class="page-content hide">
@@ -780,7 +831,8 @@ function roleLabel(r){
 const PAGE_TITLES = {
   employees:'الموظفون / Employees', contractors:'العمالة الخارجية / المقاولين — Contractors',
   branches:'الفروع / Branches', payroll:'مسيرات الرواتب / Payroll Runs',
-  advances:'السلف والتسويات / Advances & Settlements', eos:'مكافأة نهاية الخدمة / End of Service Gratuity',
+  advances:'السلف والتسويات / Advances & Settlements', leaves:'الإجازات / Leaves',
+  eos:'مكافأة نهاية الخدمة / End of Service Gratuity',
   orgchart:'الهيكل التنظيمي / Organization Chart', kpi:'لوحة المؤشرات / KPI Dashboard',
   compliance:'تقرير الامتثال / Compliance Report',
   users:'المستخدمون والصلاحيات / Users & Roles',
@@ -799,6 +851,7 @@ function showPage(page){
   if (page === 'branches') loadBranches();
   if (page === 'payroll') loadPayrollRuns();
   if (page === 'advances') loadAdvancesPage();
+  if (page === 'leaves') loadLeavesPage();
   if (page === 'orgchart') loadOrgChart();
   if (page === 'kpi') loadKpiDashboard();
   if (page === 'compliance') loadCompliancePage();
@@ -812,6 +865,7 @@ function canManage(action){
   const allowed = {
     manageEmployees: ['owner','admin','hr'],
     manageContractors: ['owner','admin','hr'],
+    manageLeaves: ['owner','admin','hr'],
     manageBranches: ['owner','admin'],
     managePayroll: ['owner','admin','hr','finance'],
     manageUsers: ['owner'],
@@ -1969,6 +2023,102 @@ async function loadSettlements(){
 }
 async function deleteSettlement(id){
   try{ await api(`/companies/${activeCompanyId}/settlements/${id}`, { method:'DELETE' }); loadAdvances(); loadSettlements(); }
+  catch(e){ toast(e.message, true); }
+}
+
+// --- Leaves (annual, sick, and the fixed-duration occasion leaves) ---
+const LEAVE_TYPE_LABEL = {
+  annual:'سنوية / Annual', sick:'مرضية / Sick', marriage:'زواج / Marriage', birth:'ولادة / Birth',
+  death:'وفاة / Death', hajj:'الحج / Hajj', exam:'امتحان / Exam',
+  iddah_muslim:'عدة (مسلمة) / Iddah (Muslim)', iddah_nonmuslim:'عدة (غير مسلمة) / Iddah (Non-Muslim)',
+  unpaid:'بدون أجر / Unpaid', other:'أخرى / Other',
+};
+let _leavesCache = [];
+let _lvSort = makeSortState('startDate');
+async function loadLeavesPage(){
+  const canEdit = canManage('manageLeaves');
+  document.getElementById('lvForm').style.display = canEdit ? '' : 'none';
+  document.getElementById('lvPermNote').textContent = canEdit ? '' : 'صلاحيتك الحالية للمشاهدة فقط في هذه الشركة.';
+  if (canEdit){
+    await populateEmployeeSelect('lv_employeeId');
+    onLeaveEmployeeChange();
+  }
+  await loadLeaveRequests();
+}
+async function onLeaveEmployeeChange(){
+  const employeeId = Number(document.getElementById('lv_employeeId').value);
+  const type = document.getElementById('lv_type').value;
+  const infoEl = document.getElementById('lv_balanceInfo');
+  if (!employeeId){ infoEl.textContent = ''; return; }
+  try{
+    const b = await api(`/companies/${activeCompanyId}/leaves/balance/${employeeId}`);
+    if (type === 'annual'){
+      infoEl.innerHTML = `الاستحقاق السنوي: <strong>${b.annual.entitlementPerYear}</strong> يوم — المتراكم حتى الآن: <strong>${b.annual.accrued}</strong> — المستخدم: <strong>${b.annual.used}</strong> — <span style="color:var(--green);font-weight:700;">المتبقي: ${b.annual.remaining} يوم</span> <span class="bl">Annual: ${b.annual.entitlementPerYear}/yr, accrued ${b.annual.accrued}, used ${b.annual.used}, remaining ${b.annual.remaining}</span>`;
+    } else if (type === 'sick'){
+      infoEl.innerHTML = `أيام مرضية مستخدمة خلال آخر 365 يوماً: <strong>${b.sickUsedLast365Days}</strong> من 120 (30 كامل + 60 ¾ + 30 بدون أجر) <span class="bl">Sick days used in the trailing 365 days: ${b.sickUsedLast365Days} of 120</span>`;
+    } else {
+      const max = { marriage:5, birth:3, death:5, hajj:10, iddah_muslim:130, iddah_nonmuslim:15 }[type];
+      infoEl.textContent = max ? `الحد الأقصى النظامي لهذا النوع: ${max} يوم.` : '';
+    }
+  }catch(e){ infoEl.textContent = ''; }
+}
+async function createLeaveRequest(){
+  try{
+    const body = {
+      employeeId: Number(document.getElementById('lv_employeeId').value) || undefined,
+      leaveType: document.getElementById('lv_type').value,
+      startDate: document.getElementById('lv_start').value,
+      endDate: document.getElementById('lv_end').value,
+      notes: document.getElementById('lv_notes').value.trim() || undefined,
+    };
+    if (!body.employeeId || !body.startDate || !body.endDate) return toast('الموظف وتاريخ البداية والنهاية مطلوبة', true);
+    await api(`/companies/${activeCompanyId}/leaves`, { method:'POST', body: JSON.stringify(body) });
+    ['lv_start','lv_end','lv_notes'].forEach(id => document.getElementById(id).value = '');
+    toast('تم تقديم طلب الإجازة');
+    onLeaveEmployeeChange();
+    loadLeaveRequests();
+  }catch(e){ toast(e.message, true); }
+}
+async function loadLeaveRequests(){
+  try{
+    _leavesCache = await api(`/companies/${activeCompanyId}/leaves`);
+    renderLeaveTable();
+  }catch(e){ toast(e.message, true); }
+}
+function sortLeavesBy(key){
+  _lvSort = { key, dir: (_lvSort.key === key ? -_lvSort.dir : 1) };
+  renderLeaveTable();
+}
+function leaveStatusBadgeClass(status){
+  return status === 'Approved' ? 'eos-badge-active' : status === 'Rejected' ? 'eos-badge-terminated' : 'eos-badge-pending';
+}
+function renderLeaveTable(){
+  const canEdit = canManage('manageLeaves');
+  const q = document.getElementById('lv_filter')?.value || '';
+  let rows = filterRows(_leavesCache, q, ['namear','empno','leaveType','status']);
+  rows = sortRows(rows, _lvSort, (r,k) => r[k]);
+  const del = canEdit ? '<th>إجراء</th><th>حذف</th>' : '';
+  let html = `<thead><tr>${sortTh('الموظف','namear',_lvSort,'sortLeavesBy')}${sortTh('النوع','leaveType',_lvSort,'sortLeavesBy')}${sortTh('من','startDate',_lvSort,'sortLeavesBy')}${sortTh('إلى','endDate',_lvSort,'sortLeavesBy')}${sortTh('الأيام','days',_lvSort,'sortLeavesBy')}<th>مدفوع</th><th>بدون أجر</th>${sortTh('الحالة','status',_lvSort,'sortLeavesBy')}<th>ملاحظات</th>${del}</tr></thead><tbody>`;
+  const nextStatus = { Pending:'Approved' };
+  rows.forEach(r => {
+    html += `<tr><td style="text-align:right;">${esc(r.namear)}${r.empno?' ('+esc(r.empno)+')':''}</td><td>${esc(LEAVE_TYPE_LABEL[r.leaveType]||r.leaveType)}</td>
+      <td style="direction:ltr;">${esc(r.startDate)}</td><td style="direction:ltr;">${esc(r.endDate)}</td><td style="font-weight:700;">${esc(r.days)}</td>
+      <td style="color:var(--green);">${esc(r.paidDays)}</td><td style="color:var(--red);">${esc(r.unpaidDays)}</td>
+      <td><span class="eos-badge ${leaveStatusBadgeClass(r.status)}">${esc(r.status)}</span></td><td style="font-size:10.5px;">${esc(r.notes||'-')}</td>`;
+    if (canEdit){
+      html += `<td>${r.status==='Pending' ? `<button class="btn btn-outline btn-sm" onclick="updateLeaveStatus(${r.id},'Approved')">✔ قبول</button> <button class="btn btn-outline btn-sm" onclick="updateLeaveStatus(${r.id},'Rejected')">✕ رفض</button>` : '-'}</td>`;
+      html += `<td><button class="btn btn-red btn-sm" onclick="deleteLeaveRequest(${r.id})">🗑</button></td>`;
+    }
+    html += `</tr>`;
+  });
+  document.getElementById('lvTable').innerHTML = html + '</tbody>';
+}
+async function updateLeaveStatus(id, status){
+  try{ await api(`/companies/${activeCompanyId}/leaves/${id}`, { method:'PATCH', body: JSON.stringify({ status }) }); loadLeaveRequests(); }
+  catch(e){ toast(e.message, true); }
+}
+async function deleteLeaveRequest(id){
+  try{ await api(`/companies/${activeCompanyId}/leaves/${id}`, { method:'DELETE' }); loadLeaveRequests(); }
   catch(e){ toast(e.message, true); }
 }
 
