@@ -287,6 +287,17 @@ run. (Advance-deduction amounts are still entered manually per run, same
 as the original app — neither app auto-derives them from the advance's
 `monthly` installment field.)
 
+The **KPI Dashboard** now matches the original's full layout, not just the
+headcount-by-department chart it had before: a branch filter, 10 KPI
+cards (headcount, active, Saudization, avg. package, total payroll, EOS
+liability, avg. tenure, pending advances, gender split, active branches),
+four bar charts (by department, by branch, payroll by department, by
+nationality), a KPI summary table with benchmarks/status, and a Print KPI
+button. A new **"📈 تقرير الموارد البشرية / HR Report"** page — entirely
+missing before — covers total/active/inactive/total-payroll summary
+cards, a by-department table, a by-nationality table, and by-status
+breakdown cards, with its own print button.
+
 **Pending: EOS article-number verification.** The uploaded Executive
 Regulations PDF (اللائحة التنفيذية) doesn't contain the EOS gratuity
 formula itself — that lives in the base نظام العمل (Labor Law), which

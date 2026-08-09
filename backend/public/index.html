@@ -88,6 +88,18 @@ table.dtbl input[type=number]:focus,table.dtbl input[type=text]:focus{outline:2p
 .sort-arrow{opacity:.7;font-size:9px;margin-inline-start:3px;}
 .filter-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;}
 .filter-bar input{border:1.5px solid var(--border);border-radius:6px;padding:7px 10px;font-size:12.5px;font-family:inherit;flex:1;min-width:200px;}
+.kpi-card{border-radius:10px;padding:15px;display:flex;flex-direction:column;gap:5px;}
+.kpi-icon{font-size:22px;margin-bottom:4px;}
+.kpi-val{font-size:24px;font-weight:800;}
+.kpi-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;opacity:.8;}
+.kpi-sub{font-size:10.5px;opacity:.7;margin-top:2px;}
+.kpi-bar-container{margin-top:8px;background:rgba(255,255,255,.2);border-radius:4px;height:5px;overflow:hidden;}
+.kpi-bar-fill{height:100%;border-radius:4px;background:rgba(255,255,255,.7);}
+.chart-row{display:flex;align-items:center;gap:8px;margin-bottom:7px;font-size:11.5px;}
+.chart-label{min-width:100px;text-align:right;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.chart-bar-wrap{flex:1;background:#eef0f5;border-radius:3px;height:18px;overflow:hidden;position:relative;}
+.chart-bar{height:100%;border-radius:3px;transition:width .5s;display:flex;align-items:center;padding-right:6px;justify-content:flex-end;}
+.chart-bar-val{font-size:10px;font-weight:700;color:#fff;white-space:nowrap;}
 .eos-result-card{border-radius:8px;padding:14px 16px;margin-bottom:10px;}
 .eos-kpi{font-size:22px;font-weight:800;margin:4px 0;}
 .eos-kpi-lbl{font-size:10.5px;font-weight:700;opacity:.8;text-transform:uppercase;letter-spacing:.5px;}
@@ -166,6 +178,7 @@ table.dtbl input[type=number]:focus,table.dtbl input[type=text]:focus{outline:2p
     <div class="nav-item" data-page="eos" onclick="showPage('eos')">📜 <span>مكافأة نهاية الخدمة<span class="bl">End of Service</span></span></div>
     <div class="nav-item" data-page="orgchart" onclick="showPage('orgchart')">🗂️ <span>الهيكل التنظيمي<span class="bl">Org Chart</span></span></div>
     <div class="nav-item" data-page="kpi" onclick="showPage('kpi')">📊 <span>لوحة المؤشرات<span class="bl">KPI Dashboard</span></span></div>
+    <div class="nav-item" data-page="hrReport" onclick="showPage('hrReport')">📈 <span>تقرير الموارد البشرية<span class="bl">HR Report</span></span></div>
     <div class="nav-item" data-page="compliance" onclick="showPage('compliance')">🔐 <span>تقرير الامتثال<span class="bl">Compliance</span></span></div>
     <div class="nav-item" data-page="users" onclick="showPage('users')">🔑 <span>المستخدمون والصلاحيات<span class="bl">Users & Roles</span></span></div>
     <div class="nav-item" data-page="companySettings" onclick="showPage('companySettings')">🏢 <span>تعريف الشركة<span class="bl">Company Settings</span></span></div>
@@ -567,8 +580,41 @@ table.dtbl input[type=number]:focus,table.dtbl input[type=text]:focus{outline:2p
     </div>
 
     <div id="page-kpi" class="page-content hide">
-      <div class="stats-row" id="kpiCards" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:13px;margin-bottom:16px;"></div>
-      <div class="section-card"><div id="kpiDeptChart"></div></div>
+      <div class="section-card" style="background:linear-gradient(135deg,var(--navy) 0%,var(--navy2) 100%);color:#fff;">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+          <div>
+            <div style="font-size:15px;font-weight:800;">📈 لوحة مؤشرات الأداء <span class="bl">Staff KPI Dashboard</span></div>
+            <div style="font-size:11px;opacity:.8;margin-top:2px;">تحليلات القوى العاملة اللحظية <span class="bl">Real-time workforce analytics</span></div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <select id="kpi_branch_filter" onchange="loadKpiDashboard()" style="border:none;background:rgba(255,255,255,.15);color:#fff;border-radius:6px;padding:6px 10px;font-size:12px;font-family:inherit;"><option value="all">كل الفروع / All Branches</option></select>
+            <button class="btn btn-gold" onclick="printKpiReport()">🖨️ طباعة <span class="bl">Print KPI</span></button>
+          </div>
+        </div>
+      </div>
+      <div class="stats-row" id="kpiCards" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:13px;margin-bottom:16px;"></div>
+      <div class="grid-2col" style="gap:16px;margin-bottom:16px;">
+        <div class="section-card"><div style="font-size:12px;font-weight:700;color:var(--navy2);margin-bottom:10px;">📊 التوزيع حسب القسم <span class="bl">Headcount by Department</span></div><div id="kpiDeptChart"></div></div>
+        <div class="section-card"><div style="font-size:12px;font-weight:700;color:var(--navy2);margin-bottom:10px;">🏢 التوزيع حسب الفرع <span class="bl">Headcount by Branch</span></div><div id="kpiBranchChart"></div></div>
+      </div>
+      <div class="grid-2col" style="gap:16px;margin-bottom:16px;">
+        <div class="section-card"><div style="font-size:12px;font-weight:700;color:var(--navy2);margin-bottom:10px;">💰 توزيع الرواتب حسب القسم <span class="bl">Payroll by Department</span></div><div id="kpiPayrollChart"></div></div>
+        <div class="section-card"><div style="font-size:12px;font-weight:700;color:var(--navy2);margin-bottom:10px;">🌍 توزيع الجنسيات <span class="bl">Nationality Distribution</span></div><div id="kpiNatChart"></div></div>
+      </div>
+      <div class="section-card">
+        <div style="font-size:12px;font-weight:700;color:var(--navy2);margin-bottom:10px;">📋 جدول المؤشرات التفصيلي <span class="bl">KPI Summary Table</span></div>
+        <div class="tbl-wrap" id="kpiTable"></div>
+      </div>
+    </div>
+
+    <div id="page-hrReport" class="page-content hide">
+      <div class="section-card">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+          <div style="font-weight:800;font-size:14px;">📈 تقرير الموارد البشرية <span class="bl">HR Report</span></div>
+          <button class="btn btn-navy" onclick="printHrReport()">🖨️ طباعة <span class="bl">Print</span></button>
+        </div>
+      </div>
+      <div id="hrReportContent"></div>
     </div>
 
     <div id="page-compliance" class="page-content hide">
@@ -837,6 +883,7 @@ const PAGE_TITLES = {
   advances:'السلف والتسويات / Advances & Settlements', leaves:'الإجازات / Leaves',
   eos:'مكافأة نهاية الخدمة / End of Service Gratuity',
   orgchart:'الهيكل التنظيمي / Organization Chart', kpi:'لوحة المؤشرات / KPI Dashboard',
+  hrReport:'تقرير الموارد البشرية / HR Report',
   compliance:'تقرير الامتثال / Compliance Report',
   users:'المستخدمون والصلاحيات / Users & Roles',
   companySettings:'تعريف الشركة / Company Settings',
@@ -857,6 +904,7 @@ function showPage(page){
   if (page === 'leaves') loadLeavesPage();
   if (page === 'orgchart') loadOrgChart();
   if (page === 'kpi') loadKpiDashboard();
+  if (page === 'hrReport') loadHrReportPage();
   if (page === 'compliance') loadCompliancePage();
   if (page === 'eos') loadEosPage();
   if (page === 'companySettings') loadCompanySettings();
@@ -2705,53 +2753,275 @@ async function loadOrgChart(){
 }
 
 // --- KPI Dashboard ---
+let _kpiStats = null;
+function renderKpiBarChart(containerId, dataObj, color, unit, isCurrency){
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  const sorted = Object.entries(dataObj).sort((a,b) => b[1]-a[1]).slice(0, 10);
+  const max = sorted[0]?.[1] || 1;
+  if (!sorted.length){ el.innerHTML = `<div style="color:var(--muted);font-size:11.5px;text-align:center;padding:14px;">لا توجد بيانات / No data</div>`; return; }
+  el.innerHTML = sorted.map(([label,val]) => `
+    <div class="chart-row">
+      <span class="chart-label" title="${esc(label)}">${esc(label)}</span>
+      <div class="chart-bar-wrap">
+        <div class="chart-bar" style="width:${Math.round(val/max*100)}%;background:${color};">
+          <span class="chart-bar-val">${isCurrency?n(Math.round(val)):val}</span>
+        </div>
+      </div>
+      <span style="font-size:10.5px;color:var(--muted);min-width:60px;text-align:left;">${isCurrency?n(Math.round(val)):val} ${unit}</span>
+    </div>`).join('');
+}
 async function loadKpiDashboard(){
-  const n = (v) => Number(v||0).toLocaleString('en-US');
   try{
-    const [employees, advances, eosRecords] = await Promise.all([
+    const [employees, branches, advances, eosRecords] = await Promise.all([
       api(`/companies/${activeCompanyId}/employees`),
+      api(`/companies/${activeCompanyId}/branches`),
       api(`/companies/${activeCompanyId}/advances`),
       api(`/companies/${activeCompanyId}/eos`),
     ]);
-    const active = employees.filter(e => e.status === 'Active');
-    const totalMonthlyPayroll = active.reduce((s,e) => s + e.basic + e.housing + e.transport + e.other, 0);
-    const avgSalary = active.length ? Math.round(totalMonthlyPayroll / active.length) : 0;
-    const pendingAdvBalance = advances.reduce((s,a) => s + (a.status !== 'settled' ? a.remain : 0), 0);
-    const eosLiability = eosRecords.filter(r => r.status !== 'Paid').reduce((s,r) => s + r.netEos, 0);
-    const saudiCount = employees.filter(e => /سعود|saudi/i.test(e.nat||'')).length;
-    const saudizationPct = employees.length ? Math.round(saudiCount/employees.length*100) : 0;
-    const maleCount = employees.filter(e => e.gender === 'Male').length;
-    const femaleCount = employees.filter(e => e.gender === 'Female').length;
 
-    const cards = [
-      { icon:'👥', label:'إجمالي الموظفين / Headcount', val: employees.length, color:'var(--navy2)' },
-      { icon:'✅', label:'الموظفون النشطون / Active', val: active.length, color:'var(--green)' },
-      { icon:'💰', label:'إجمالي الرواتب الشهرية / Monthly Payroll', val: n(totalMonthlyPayroll) + ' SAR', color:'var(--navy2)' },
-      { icon:'📊', label:'متوسط الراتب / Avg. Package', val: n(avgSalary) + ' SAR', color:'var(--navy2)' },
-      { icon:'💳', label:'رصيد السلف المعلق / Pending Advances', val: n(pendingAdvBalance) + ' SAR', color:'var(--red)' },
-      { icon:'📜', label:'التزام مكافأة نهاية الخدمة / EOS Liability', val: n(eosLiability) + ' SAR', color:'#c07020' },
-      { icon:'🇸🇦', label:'نسبة السعودة / Saudization', val: saudizationPct + '%', color: saudizationPct>=75?'var(--green)':'#c07020' },
-      { icon:'⚧', label:'التنوع (ذكور/إناث) / Gender (M/F)', val: maleCount+' / '+femaleCount, color:'var(--navy2)' },
+    const brSel = document.getElementById('kpi_branch_filter');
+    if (brSel.options.length === 1){
+      brSel.innerHTML += branches.map(b => `<option value="${b.id}">${esc(b.namear)}</option>`).join('');
+    }
+    const branchFilter = brSel.value || 'all';
+    const emps = branchFilter === 'all' ? employees : employees.filter(e => String(e.branchId) === branchFilter);
+
+    const total = emps.length;
+    const active = emps.filter(e => e.status === 'Active');
+    const inactive = total - active.length;
+    const saudiCount = emps.filter(e => /سعود|saudi/i.test(e.nat||'')).length;
+    const saudizationPct = total ? Math.round(saudiCount/total*100) : 0;
+
+    const today = new Date().toISOString().slice(0,10);
+    const totalGross = emps.reduce((s,e) => s+(e.basic||0)+(e.housing||0)+(e.transport||0)+(e.other||0), 0);
+    const totalBasic = emps.reduce((s,e) => s+(e.basic||0), 0);
+    const avgSalary = total ? Math.round(totalGross/total) : 0;
+    const maxSalary = emps.reduce((m,e) => Math.max(m, (e.basic||0)+(e.housing||0)+(e.transport||0)+(e.other||0)), 0);
+    const withSalary = emps.filter(e => (e.basic||0) > 0);
+    const minSalary = withSalary.length ? withSalary.reduce((m,e) => Math.min(m, (e.basic||0)+(e.housing||0)+(e.transport||0)+(e.other||0)), Infinity) : 0;
+
+    const eosTotal = emps.reduce((s,e) => {
+      if (!e.hire || (e.basic||0)+(e.housing||0) === 0) return s;
+      return s + eosCalcGratuity(e.basic||0, e.housing||0, e.hire, today, 'terminated').gratuity;
+    }, 0);
+    const eosMonthly = emps.reduce((s,e) => {
+      if (!e.hire) return s;
+      const dur = eosServiceDuration(e.hire, today);
+      return s + eosMonthlyAccrual(e.basic||0, e.housing||0, dur.totalMonths);
+    }, 0);
+
+    const withHire = emps.filter(e => e.hire);
+    const avgTenureMonths = withHire.length ? withHire.reduce((s,e) => s + eosServiceDuration(e.hire, today).totalMonths, 0) / withHire.length : 0;
+    const avgTenureYears = (avgTenureMonths/12).toFixed(1);
+
+    const maleCount = emps.filter(e => e.gender === 'Male').length;
+    const femaleCount = emps.filter(e => e.gender === 'Female').length;
+
+    const empIds = new Set(emps.map(e => e.id));
+    const scopedAdvances = branchFilter === 'all' ? advances : advances.filter(a => empIds.has(a.employeeId));
+    const totalAdvBal = scopedAdvances.reduce((s,a) => s + (a.status !== 'settled' ? a.remain : 0), 0);
+    const activeBranches = branches.filter(b => b.status === 'Active');
+
+    _kpiStats = { total, active: active.length, inactive, saudiCount, saudizationPct, avgSalary, maxSalary, minSalary: minSalary===Infinity?0:minSalary, totalGross, totalBasic, eosTotal, eosMonthly, avgTenureYears, avgTenureMonths, maleCount, femaleCount, totalAdvBal, scopedAdvancesCount: scopedAdvances.filter(a=>a.status!=='settled').length, activeBranches: activeBranches.length, totalBranches: branches.length };
+
+    const kpiDefs = [
+      { icon:'👥', val:total, lbl:'إجمالي القوى العاملة / Total Headcount', sub:`نشط: ${active.length} | غير نشط: ${inactive}`, bg:'linear-gradient(135deg,#1a3a6b,#2255a0)', barPct:100 },
+      { icon:'✅', val:active.length, lbl:'الموظفون النشطون / Active Employees', sub:`${Math.round(active.length/Math.max(total,1)*100)}% من الإجمالي`, bg:'linear-gradient(135deg,#1a6b3a,#27ae60)', barPct: active.length/Math.max(total,1)*100 },
+      { icon:'🇸🇦', val:saudizationPct+'%', lbl:'نسبة السعودة / Saudization Rate', sub:`${saudiCount} سعودي من ${total}`, bg:'linear-gradient(135deg,#8a5c00,#c8a84b)', barPct:saudizationPct },
+      { icon:'💰', val:n(avgSalary)+' SAR', lbl:'متوسط الراتب / Avg. Total Package', sub:`الأعلى: ${n(maxSalary)} | الأدنى: ${n(minSalary===Infinity?0:minSalary)}`, bg:'linear-gradient(135deg,#0f2557,#1a3a6b)', barPct:50 },
+      { icon:'💵', val:n(totalGross)+' SAR', lbl:'إجمالي الرواتب / Total Payroll Liability', sub:`الأساسي: ${n(totalBasic)} SAR`, bg:'linear-gradient(135deg,#1a5236,#1a6b3a)', barPct:70 },
+      { icon:'🏁', val:n(Math.round(eosTotal))+' SAR', lbl:'التزام نهاية الخدمة / EOS Total Liability', sub:`الاستحقاق الشهري: ${n(Math.round(eosMonthly))} SAR`, bg:'linear-gradient(135deg,#5c3d00,#c8a84b)', barPct:60 },
+      { icon:'📅', val:avgTenureYears+' سنة', lbl:'متوسط سنوات الخدمة / Avg. Tenure', sub:`${Math.round(avgTenureMonths)} شهر بالمتوسط`, bg:'linear-gradient(135deg,#3a1e6b,#6633cc)', barPct:avgTenureMonths/120*100 },
+      { icon:'💳', val:n(Math.round(totalAdvBal))+' SAR', lbl:'السلف المعلقة / Pending Advances', sub:`${scopedAdvances.filter(a=>a.status!=='settled').length} سلفة نشطة`, bg:'linear-gradient(135deg,#6b1a1a,#c0392b)', barPct:50 },
+      { icon:'👨', val:maleCount, lbl:'الذكور / Male Employees', sub:`${femaleCount} إناث | ${total?Math.round(maleCount/total*100):0}% ذكور`, bg:'linear-gradient(135deg,#1a3a6b,#2255a0)', barPct:total?maleCount/total*100:50 },
+      { icon:'🏢', val:activeBranches.length, lbl:'الفروع النشطة / Active Branches', sub:`الإجمالي: ${branches.length} فرع`, bg:'linear-gradient(135deg,#0a3a3a,#1a5c5c)', barPct:100 },
     ];
-    document.getElementById('kpiCards').innerHTML = cards.map(c => `
-      <div class="section-card" style="margin-bottom:0;padding:14px;">
-        <div style="font-size:20px;margin-bottom:4px;">${c.icon}</div>
-        <div style="font-size:20px;font-weight:800;color:${c.color};">${c.val}</div>
-        <div style="font-size:10px;font-weight:700;color:var(--muted);margin-top:2px;">${esc(c.label)}</div>
+    document.getElementById('kpiCards').innerHTML = kpiDefs.map(k => `
+      <div class="kpi-card" style="background:${k.bg};color:#fff;">
+        <div class="kpi-icon">${k.icon}</div>
+        <div class="kpi-val">${k.val}</div>
+        <div class="kpi-lbl">${esc(k.lbl)}</div>
+        <div class="kpi-sub">${esc(k.sub)}</div>
+        <div class="kpi-bar-container"><div class="kpi-bar-fill" style="width:${Math.min(k.barPct,100).toFixed(0)}%;"></div></div>
       </div>`).join('');
 
-    const byDept = {};
-    active.forEach(e => { const d = e.dept || 'Unassigned'; byDept[d] = (byDept[d]||0) + 1; });
-    const max = Math.max(1, ...Object.values(byDept));
-    document.getElementById('kpiDeptChart').innerHTML = `<div style="font-size:12px;font-weight:700;color:var(--navy2);margin-bottom:10px;">التوزيع حسب القسم / Headcount by Department</div>` +
-      Object.entries(byDept).map(([dept,count]) => `
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px;font-size:11.5px;">
-          <span style="min-width:120px;">${esc(dept)}</span>
-          <div style="flex:1;background:#eef0f5;border-radius:3px;height:18px;overflow:hidden;">
-            <div style="height:100%;background:var(--navy3);width:${Math.round(count/max*100)}%;"></div>
-          </div>
-          <span style="min-width:24px;text-align:left;">${count}</span>
-        </div>`).join('');
+    const depts = {};
+    emps.forEach(e => { const d = e.dept || 'غير محدد'; depts[d] = (depts[d]||0) + 1; });
+    renderKpiBarChart('kpiDeptChart', depts, 'var(--navy2)', 'موظف');
+
+    const branchCounts = {};
+    branches.forEach(b => { branchCounts[b.namear] = 0; });
+    emps.forEach(e => {
+      const br = branches.find(b => b.id === e.branchId);
+      const label = br ? br.namear : 'بدون فرع';
+      branchCounts[label] = (branchCounts[label]||0) + 1;
+    });
+    renderKpiBarChart('kpiBranchChart', branchCounts, 'var(--gold)', 'موظف');
+
+    const deptPay = {};
+    emps.forEach(e => { const d = e.dept || 'غير محدد'; deptPay[d] = (deptPay[d]||0) + (e.basic||0)+(e.housing||0)+(e.transport||0)+(e.other||0); });
+    renderKpiBarChart('kpiPayrollChart', deptPay, 'var(--green)', 'SAR', true);
+
+    const nats = {};
+    emps.forEach(e => { const nat = (e.nat||'غير محدد').split('/')[0].trim() || 'غير محدد'; nats[nat] = (nats[nat]||0) + 1; });
+    renderKpiBarChart('kpiNatChart', nats, 'var(--red)', 'موظف');
+
+    const tableData = [
+      { kpi:'إجمالي القوى العاملة / Total Headcount', value:total, benchmark:'—', status:'info' },
+      { kpi:'الموظفون النشطون / Active Employees', value:active.length, benchmark:'>90%', status: active.length/Math.max(total,1)>.9?'good':'warn' },
+      { kpi:'نسبة السعودة / Saudization Rate', value:saudizationPct+'%', benchmark:'≥75%', status: saudizationPct>=75?'good':saudizationPct>=50?'warn':'bad' },
+      { kpi:'متوسط الراتب / Avg. Total Package', value:n(avgSalary)+' SAR', benchmark:'سعر السوق', status:'info' },
+      { kpi:'إجمالي الرواتب الشهرية / Total Monthly Payroll', value:n(totalGross)+' SAR', benchmark:'الموازنة', status:'info' },
+      { kpi:'التزام نهاية الخدمة / EOS Total Liability', value:n(Math.round(eosTotal))+' SAR', benchmark:'مُموّل؟', status:'warn' },
+      { kpi:'الاستحقاق الشهري لنهاية الخدمة / EOS Monthly Provision', value:n(Math.round(eosMonthly))+' SAR/شهر', benchmark:'يجب استحقاقه', status:'info' },
+      { kpi:'متوسط سنوات الخدمة / Avg. Employee Tenure', value:avgTenureYears+' سنة', benchmark:'>2 سنة', status: avgTenureMonths>=24?'good':'warn' },
+      { kpi:'رصيد السلف المعلق / Pending Advance Balance', value:n(Math.round(totalAdvBal))+' SAR', benchmark:'<20% من الرواتب', status: totalAdvBal<totalGross*.2?'good':'warn' },
+      { kpi:'التنوع (ذكور/إناث) / Gender Diversity', value:`${maleCount}/${femaleCount}`, benchmark:'السياسة', status:'info' },
+      { kpi:'الفروع النشطة / Active Branches', value:activeBranches.length, benchmark:'—', status:'info' },
+    ];
+    const statusColor = { good:'#1a6b3a', warn:'#c07020', bad:'#c0392b', info:'#1a3a6b' };
+    const statusLabel = { good:'✅ جيد', warn:'⚠️ مراجعة', bad:'🔴 حرج', info:'ℹ️ معلومة' };
+    document.getElementById('kpiTable').innerHTML = `<table class="dtbl">
+      <thead><tr><th>المؤشر <span class="bl">KPI</span></th><th>القيمة <span class="bl">Value</span></th><th>المرجع <span class="bl">Benchmark</span></th><th>الحالة <span class="bl">Status</span></th></tr></thead>
+      <tbody>${tableData.map(r => `<tr>
+        <td style="text-align:right;font-weight:600;">${esc(r.kpi)}</td>
+        <td style="font-weight:700;color:var(--navy2);">${esc(r.value)}</td>
+        <td style="color:var(--muted);">${esc(r.benchmark)}</td>
+        <td><span style="background:${statusColor[r.status]};color:#fff;padding:2px 10px;border-radius:8px;font-size:10.5px;font-weight:700;">${statusLabel[r.status]}</span></td>
+      </tr>`).join('')}</tbody>
+    </table>`;
+  }catch(e){ toast(e.message, true); }
+}
+async function printKpiReport(){
+  if (!_kpiStats) return toast('لا توجد بيانات بعد', true);
+  const s = _kpiStats;
+  const cardsHtml = document.getElementById('kpiCards').innerHTML;
+  const deptChart = document.getElementById('kpiDeptChart').innerHTML;
+  const branchChart = document.getElementById('kpiBranchChart').innerHTML;
+  const payrollChart = document.getElementById('kpiPayrollChart').innerHTML;
+  const natChart = document.getElementById('kpiNatChart').innerHTML;
+  const tableHtml = document.getElementById('kpiTable').innerHTML;
+  try{
+    const company = await api(`/companies/${activeCompanyId}`);
+    const w = window.open('', '_blank');
+    w.document.write(`<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8">
+    <style>@page{size:A4 portrait;margin:10mm;}body{font-family:Arial;font-size:9pt;direction:rtl;}
+    .bl{opacity:.6;font-size:.85em;}
+    h2{color:#1a3a6b;text-align:center;margin-bottom:10px;}
+    .kpi-card{border-radius:8px;padding:10px;color:#fff;font-size:9pt;}
+    .kpi-icon{font-size:16px;}.kpi-val{font-size:14pt;font-weight:800;}.kpi-lbl{font-size:7.5pt;opacity:.85;}.kpi-sub{font-size:7pt;opacity:.7;}
+    .kpi-bar-container{display:none;}
+    .cardsgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;}
+    .chartsgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;}
+    .chart-row{display:flex;align-items:center;gap:6px;margin-bottom:5px;font-size:8pt;}
+    .chart-label{min-width:80px;text-align:right;}
+    .chart-bar-wrap{flex:1;background:#eef0f5;border-radius:3px;height:14px;overflow:hidden;}
+    .chart-bar{height:100%;display:flex;align-items:center;padding-right:4px;justify-content:flex-end;}
+    .chart-bar-val{font-size:7.5pt;font-weight:700;color:#fff;}
+    table{width:100%;border-collapse:collapse;}th{background:#1a3a6b;color:#fff;padding:5px;font-size:8pt;}
+    td{padding:4px;border-bottom:1px solid #ddd;text-align:center;font-size:8pt;}
+    .toolbar{display:flex;justify-content:center;margin-bottom:12px;}
+    .toolbar button{padding:8px 16px;border:none;border-radius:6px;cursor:pointer;font-size:11pt;font-weight:600;background:#0f2557;color:#fff;}
+    @media print{.toolbar{display:none;}}
+    </style></head><body>
+    <div class="toolbar"><button onclick="window.print()">🖨️ طباعة / حفظ PDF <span class="bl">Print / Save as PDF</span></button></div>
+    ${customHeaderHtml(company)}
+    <h2>${esc(company.nameAr)} — لوحة مؤشرات الأداء <span class="bl">Staff KPI Dashboard</span></h2>
+    <div class="cardsgrid">${cardsHtml}</div>
+    <div class="chartsgrid">
+      <div><strong>التوزيع حسب القسم / By Department</strong>${deptChart}</div>
+      <div><strong>التوزيع حسب الفرع / By Branch</strong>${branchChart}</div>
+    </div>
+    <div class="chartsgrid">
+      <div><strong>الرواتب حسب القسم / Payroll by Dept</strong>${payrollChart}</div>
+      <div><strong>الجنسيات / Nationality</strong>${natChart}</div>
+    </div>
+    <table>${tableHtml}</table>
+    ${customFooterHtml(company)}
+    </body></html>`);
+    w.document.close();
+    setTimeout(() => w.print(), 400);
+  }catch(e){ toast(e.message, true); }
+}
+
+// --- HR Report ---
+async function loadHrReportPage(){
+  try{
+    const employees = await api(`/companies/${activeCompanyId}/employees`);
+    renderHrReport(employees);
+  }catch(e){ toast(e.message, true); }
+}
+function renderHrReport(employees){
+  const depts = {};
+  employees.forEach(e => {
+    const d = e.dept || 'غير محدد / Unassigned';
+    if (!depts[d]) depts[d] = { total:0, active:0, salaryTotal:0 };
+    depts[d].total++;
+    if (e.status === 'Active'){ depts[d].active++; depts[d].salaryTotal += (e.basic||0)+(e.housing||0)+(e.other||0); }
+  });
+  const nats = {};
+  employees.forEach(e => { const nat = (e.nat||'').split('/')[0].trim() || 'غير محدد / Other'; nats[nat] = (nats[nat]||0) + 1; });
+  const statuses = {};
+  employees.forEach(e => { const s = e.status || 'غير محدد'; statuses[s] = (statuses[s]||0) + 1; });
+
+  const total = employees.length;
+  const active = employees.filter(e => e.status === 'Active').length;
+  const totalSalary = employees.filter(e => e.status === 'Active').reduce((s,e) => s+(e.basic||0)+(e.housing||0)+(e.other||0), 0);
+  const statusLabelAr = { Active:'نشط', 'On Leave':'إجازة', Terminated:'منتهي' };
+
+  document.getElementById('hrReportContent').innerHTML = `
+    <div class="section-card">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:18px;">
+        <div style="background:#e8f0ff;border-radius:8px;padding:14px;text-align:center;"><div style="font-size:22px;font-weight:700;color:var(--navy2);">${total}</div><div style="font-size:11px;color:var(--muted);">إجمالي الموظفين <span class="bl">Total Employees</span></div></div>
+        <div style="background:#e8fff0;border-radius:8px;padding:14px;text-align:center;"><div style="font-size:22px;font-weight:700;color:var(--green);">${active}</div><div style="font-size:11px;color:var(--muted);">نشط <span class="bl">Active</span></div></div>
+        <div style="background:#fdecea;border-radius:8px;padding:14px;text-align:center;"><div style="font-size:22px;font-weight:700;color:var(--red);">${total-active}</div><div style="font-size:11px;color:var(--muted);">غير نشط <span class="bl">Inactive/Other</span></div></div>
+        <div style="background:#fff8e0;border-radius:8px;padding:14px;text-align:center;"><div style="font-size:18px;font-weight:700;color:var(--gold);">${n(totalSalary)}</div><div style="font-size:11px;color:var(--muted);">إجمالي الرواتب <span class="bl">Total Payroll SAR</span></div></div>
+      </div>
+      <div class="grid-2col" style="gap:14px;margin-bottom:18px;">
+        <div>
+          <div style="font-size:12px;font-weight:700;color:var(--navy2);margin-bottom:8px;">📂 حسب القسم <span class="bl">By Department</span></div>
+          <table class="dtbl"><thead><tr><th>القسم</th><th>الإجمالي</th><th>نشط</th><th>إجمالي الرواتب</th></tr></thead><tbody>
+          ${Object.entries(depts).sort((a,b)=>b[1].total-a[1].total).map(([d,v]) => `<tr><td style="text-align:right;">${esc(d)}</td><td>${v.total}</td><td style="color:var(--green);">${v.active}</td><td>${n(v.salaryTotal)}</td></tr>`).join('')}
+          </tbody></table>
+        </div>
+        <div>
+          <div style="font-size:12px;font-weight:700;color:var(--navy2);margin-bottom:8px;">🌍 حسب الجنسية <span class="bl">By Nationality</span></div>
+          <table class="dtbl"><thead><tr><th>الجنسية</th><th>العدد</th><th>%</th></tr></thead><tbody>
+          ${Object.entries(nats).sort((a,b)=>b[1]-a[1]).map(([nat,cnt]) => `<tr><td style="text-align:right;">${esc(nat)}</td><td>${cnt}</td><td>${total?Math.round(cnt/total*100):0}%</td></tr>`).join('')}
+          </tbody></table>
+        </div>
+      </div>
+      <div style="font-size:12px;font-weight:700;color:var(--navy2);margin-bottom:8px;">📋 حسب الحالة <span class="bl">By Status</span></div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        ${Object.entries(statuses).map(([s,c]) => `<div style="background:#f5f8ff;border-radius:8px;padding:10px 18px;text-align:center;"><div style="font-size:18px;font-weight:700;">${c}</div><div style="font-size:11px;color:var(--muted);">${esc(statusLabelAr[s]||s)} <span class="bl">${esc(s)}</span></div></div>`).join('')}
+      </div>
+    </div>`;
+}
+async function printHrReport(){
+  await loadHrReportPage();
+  const content = document.getElementById('hrReportContent').innerHTML;
+  try{
+    const company = await api(`/companies/${activeCompanyId}`);
+    const w = window.open('', '_blank');
+    w.document.write(`<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8">
+    <style>@page{size:A4 portrait;margin:10mm;}body{font-family:Arial;font-size:9pt;direction:rtl;}
+    .bl{opacity:.6;font-size:.85em;}
+    h2{color:#1a3a6b;text-align:center;margin-bottom:10px;}
+    table{width:100%;border-collapse:collapse;}th{background:#1a3a6b;color:#fff;padding:5px;font-size:8pt;}
+    td{padding:4px;border-bottom:1px solid #ddd;text-align:center;font-size:8pt;}
+    .toolbar{display:flex;justify-content:center;margin-bottom:12px;}
+    .toolbar button{padding:8px 16px;border:none;border-radius:6px;cursor:pointer;font-size:11pt;font-weight:600;background:#0f2557;color:#fff;}
+    @media print{.toolbar{display:none;}}
+    </style></head><body>
+    <div class="toolbar"><button onclick="window.print()">🖨️ طباعة / حفظ PDF <span class="bl">Print / Save as PDF</span></button></div>
+    ${customHeaderHtml(company)}
+    <h2>${esc(company.nameAr)} — تقرير الموارد البشرية <span class="bl">HR Report</span></h2>
+    ${content}
+    ${customFooterHtml(company)}
+    </body></html>`);
+    w.document.close();
+    setTimeout(() => w.print(), 400);
   }catch(e){ toast(e.message, true); }
 }
 
