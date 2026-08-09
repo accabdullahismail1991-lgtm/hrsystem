@@ -15,6 +15,7 @@ const advancesRoutes = require('./routes/advances');
 const settlementsRoutes = require('./routes/settlements');
 const eosRoutes = require('./routes/eos');
 const leavesRoutes = require('./routes/leaves');
+const dailyHoursRoutes = require('./routes/dailyHours');
 
 const app = express();
 app.use(cors());
@@ -33,6 +34,7 @@ app.use('/api/companies/:companyId/advances', advancesRoutes);
 app.use('/api/companies/:companyId/settlements', settlementsRoutes);
 app.use('/api/companies/:companyId/eos', eosRoutes);
 app.use('/api/companies/:companyId/leaves', leavesRoutes);
+app.use('/api/companies/:companyId/daily-hours', dailyHoursRoutes);
 
 app.use(express.static(path.join(__dirname, '..', 'public')));
 

@@ -184,6 +184,22 @@ router.post('/:runId/generate', requireCompanyRole('managePayroll'), async (req,
   const existing = await db('payroll_lines').where({ payroll_run_id: run.id }).pluck('employee_id');
   const employees = await db('employees').where({ company_id: req.companyId, status: 'Active' }).whereNotIn('id', existing.filter(Boolean).length ? existing : [-1]);
 
+  // Auto-feed overtime pay from the Daily Hours Log: overtime hours logged
+  // within the run's month sum up per employee, paid at 150% of the basic
+  // hourly wage (Art. 107 of the executive regulations — basic hourly wage
+  // + 50% — using the common 30-day/8-hour-per-day convention).
+  const monthStart = `${run.year_g}-${String(run.month).padStart(2, '0')}-01`;
+  const monthEndDate = new Date(run.year_g, run.month, 0);
+  const monthEnd = monthEndDate.toISOString().slice(0, 10);
+  const overtimeRows = await db('daily_hours_logs')
+    .where({ company_id: req.companyId })
+    .whereBetween('work_date', [monthStart, monthEnd])
+    .groupBy('employee_id')
+    .select('employee_id')
+    .sum({ totalOvertimeHours: 'overtime_hours' });
+  const overtimeHoursByEmployee = {};
+  overtimeRows.forEach((r) => { overtimeHoursByEmployee[r.employee_id] = Number(r.totalOvertimeHours) || 0; });
+
   for (const e of employees) {
     // Fixed monthly deductions on the employee record auto-apply as
     // "other deductions", same as the original app's calcEmpFixedDed.
@@ -193,8 +209,13 @@ router.post('/:runId/generate', requireCompanyRole('managePayroll'), async (req,
       if (Array.isArray(list)) fixedDedTotal = list.reduce((s, d) => s + (Number(d.amount) || 0), 0);
     } catch { /* ignore malformed data */ }
 
+    const overtimeHours = overtimeHoursByEmployee[e.id] || 0;
+    const hourlyRate = (Number(e.basic) || 0) / 240; // 30 days x 8 hours
+    const overtimePay = Math.round(overtimeHours * hourlyRate * 1.5);
+
     const line = {
       basic: e.basic, housing: e.housing, transport: e.transport, other: e.other,
+      overtime: overtimePay,
       otherDeduction: fixedDedTotal,
       gosiEmp: e.gosi_emp, healthIns: e.health_ins, incomeTax: e.income_tax, unionFee: e.union_fee,
       gosiEr: e.gosi_er, otherEr: e.other_er,
@@ -212,6 +233,7 @@ router.post('/:runId/generate', requireCompanyRole('managePayroll'), async (req,
       housing: e.housing,
       transport: e.transport,
       other: e.other,
+      overtime: overtimePay,
       other_deduction: fixedDedTotal,
       gosi_emp: e.gosi_emp,
       health_ins: e.health_ins,

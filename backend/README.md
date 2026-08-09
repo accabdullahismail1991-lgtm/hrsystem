@@ -298,6 +298,17 @@ missing before — covers total/active/inactive/total-payroll summary
 cards, a by-department table, a by-nationality table, and by-status
 breakdown cards, with its own print button.
 
+A new **"⏱️ سجل الساعات اليومية / Daily Hours Log"** page
+(`daily_hours_logs` table, `src/routes/dailyHours.js`) lets HR log each
+employee's daily regular/overtime hours. Overtime hours logged for a
+given month feed automatically into that month's payroll run when it's
+generated — paid at 150% of the basic hourly wage (basic ÷ 240, i.e. a
+30-day/8-hour-per-day convention, +50% per Executive Regulations Art.
+107) — populating the line's `overtime` amount instead of it defaulting
+to 0. Verified end-to-end: hours logged outside the run's month are
+correctly excluded, and the computed pay matches the expected formula
+exactly.
+
 **Pending: EOS article-number verification.** The uploaded Executive
 Regulations PDF (اللائحة التنفيذية) doesn't contain the EOS gratuity
 formula itself — that lives in the base نظام العمل (Labor Law), which
