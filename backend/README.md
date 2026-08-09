@@ -269,6 +269,11 @@ A new "🏖️ الإجازات / Leaves" page covers annual, sick, and the fixe
 duration occasion leave types (see above) — a request form with a live
 balance/cap preview, and an approve/reject/delete table for HR.
 
+The employee "Nationality" field is now a searchable list (158 countries,
+Arabic name stored / English shown as a hint) via a native `<datalist>`
+instead of free text — still just a text input under the hood, so it
+degrades gracefully and doesn't block typing something not on the list.
+
 **Pending: EOS article-number verification.** The uploaded Executive
 Regulations PDF (اللائحة التنفيذية) doesn't contain the EOS gratuity
 formula itself — that lives in the base نظام العمل (Labor Law), which

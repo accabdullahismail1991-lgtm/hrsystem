@@ -225,7 +225,7 @@ table.dtbl input[type=number]:focus,table.dtbl input[type=text]:focus{outline:2p
         </div>
         <div class="section-title">👤 البيانات الشخصية <span class="bl">Personal</span></div>
         <div class="form-grid">
-          <div class="fg"><label>الجنسية<span class="bl">Nationality</span></label><input id="e_nat"></div>
+          <div class="fg"><label>الجنسية<span class="bl">Nationality</span></label><input id="e_nat" list="nationalityList" placeholder="اكتب للبحث... / Type to search..." autocomplete="off"></div>
           <div class="fg"><label>الجنس<span class="bl">Gender</span></label>
             <select id="e_gender"><option value="">—</option><option value="Male">ذكر / Male</option><option value="Female">أنثى / Female</option></select>
           </div>
@@ -718,6 +718,8 @@ table.dtbl input[type=number]:focus,table.dtbl input[type=text]:focus{outline:2p
   </div>
 </div>
 
+<datalist id="nationalityList"></datalist>
+
 <script>
 const API = '/api';
 let token = localStorage.getItem('hr_token') || null;
@@ -876,6 +878,58 @@ function canManage(action){
 }
 
 function esc(v){ return String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+// Nationalities for the searchable Employee "Nationality" field — Arabic
+// name is what's stored (matches every other Arabic-labeled field in this
+// app); English name shows as a hint in the browser's suggestion list.
+const NATIONALITIES = [
+  ['السعودية','Saudi Arabia'],['الإمارات','United Arab Emirates'],['الكويت','Kuwait'],['قطر','Qatar'],
+  ['البحرين','Bahrain'],['عُمان','Oman'],['اليمن','Yemen'],['الأردن','Jordan'],['لبنان','Lebanon'],
+  ['سوريا','Syria'],['العراق','Iraq'],['فلسطين','Palestine'],['مصر','Egypt'],['السودان','Sudan'],
+  ['ليبيا','Libya'],['تونس','Tunisia'],['الجزائر','Algeria'],['المغرب','Morocco'],['موريتانيا','Mauritania'],
+  ['الصومال','Somalia'],['جيبوتي','Djibouti'],['جزر القمر','Comoros'],
+  ['الهند','India'],['باكستان','Pakistan'],['بنغلاديش','Bangladesh'],['سريلانكا','Sri Lanka'],
+  ['نيبال','Nepal'],['الفلبين','Philippines'],['إندونيسيا','Indonesia'],['ماليزيا','Malaysia'],
+  ['تايلاند','Thailand'],['فيتنام','Vietnam'],['ميانمار','Myanmar'],['الصين','China'],['اليابان','Japan'],
+  ['كوريا الجنوبية','South Korea'],['كوريا الشمالية','North Korea'],['أفغانستان','Afghanistan'],
+  ['إيران','Iran'],['كازاخستان','Kazakhstan'],['أوزبكستان','Uzbekistan'],['تركمانستان','Turkmenistan'],
+  ['طاجيكستان','Tajikistan'],['قيرغيزستان','Kyrgyzstan'],['منغوليا','Mongolia'],['سنغافورة','Singapore'],
+  ['بروناي','Brunei'],['كمبوديا','Cambodia'],['لاوس','Laos'],['بوتان','Bhutan'],['المالديف','Maldives'],
+  ['تركيا','Turkey'],['قبرص','Cyprus'],['اليونان','Greece'],['إيطاليا','Italy'],['فرنسا','France'],
+  ['إسبانيا','Spain'],['البرتغال','Portugal'],['ألمانيا','Germany'],['بريطانيا','United Kingdom'],
+  ['إيرلندا','Ireland'],['هولندا','Netherlands'],['بلجيكا','Belgium'],['سويسرا','Switzerland'],
+  ['النمسا','Austria'],['السويد','Sweden'],['النرويج','Norway'],['الدنمارك','Denmark'],['فنلندا','Finland'],
+  ['أيسلندا','Iceland'],['بولندا','Poland'],['التشيك','Czech Republic'],['سلوفاكيا','Slovakia'],
+  ['المجر','Hungary'],['رومانيا','Romania'],['بلغاريا','Bulgaria'],['صربيا','Serbia'],['كرواتيا','Croatia'],
+  ['البوسنة والهرسك','Bosnia and Herzegovina'],['سلوفينيا','Slovenia'],['شمال مقدونيا','North Macedonia'],
+  ['الجبل الأسود','Montenegro'],['ألبانيا','Albania'],['مالطا','Malta'],['أوكرانيا','Ukraine'],
+  ['روسيا','Russia'],['بيلاروسيا','Belarus'],['مولدوفا','Moldova'],['جورجيا','Georgia'],
+  ['أرمينيا','Armenia'],['أذربيجان','Azerbaijan'],['إستونيا','Estonia'],['لاتفيا','Latvia'],
+  ['ليتوانيا','Lithuania'],['لوكسمبورغ','Luxembourg'],
+  ['الولايات المتحدة','United States'],['كندا','Canada'],['المكسيك','Mexico'],['البرازيل','Brazil'],
+  ['الأرجنتين','Argentina'],['شيلي','Chile'],['كولومبيا','Colombia'],['بيرو','Peru'],
+  ['فنزويلا','Venezuela'],['الإكوادور','Ecuador'],['بوليفيا','Bolivia'],['باراغواي','Paraguay'],
+  ['أوروغواي','Uruguay'],['كوبا','Cuba'],['جامايكا','Jamaica'],['هايتي','Haiti'],
+  ['جمهورية الدومينيكان','Dominican Republic'],['بنما','Panama'],['كوستاريكا','Costa Rica'],
+  ['غواتيمالا','Guatemala'],['هندوراس','Honduras'],['نيكاراغوا','Nicaragua'],['السلفادور','El Salvador'],
+  ['نيجيريا','Nigeria'],['إثيوبيا','Ethiopia'],['كينيا','Kenya'],['أوغندا','Uganda'],['تنزانيا','Tanzania'],
+  ['غانا','Ghana'],['السنغال','Senegal'],['ساحل العاج','Ivory Coast'],['الكاميرون','Cameroon'],
+  ['جنوب أفريقيا','South Africa'],['زيمبابوي','Zimbabwe'],['زامبيا','Zambia'],['موزمبيق','Mozambique'],
+  ['أنغولا','Angola'],['الكونغو الديمقراطية','DR Congo'],['الكونغو','Congo'],['مالي','Mali'],
+  ['النيجر','Niger'],['تشاد','Chad'],['بوركينا فاسو','Burkina Faso'],['بنين','Benin'],['توغو','Togo'],
+  ['غينيا','Guinea'],['رواندا','Rwanda'],['بوروندي','Burundi'],['ملاوي','Malawi'],['ناميبيا','Namibia'],
+  ['بوتسوانا','Botswana'],['ليسوتو','Lesotho'],['إسواتيني','Eswatini'],['غامبيا','Gambia'],
+  ['غينيا بيساو','Guinea-Bissau'],['سيراليون','Sierra Leone'],['ليبيريا','Liberia'],['إريتريا','Eritrea'],
+  ['جنوب السودان','South Sudan'],['أستراليا','Australia'],['نيوزيلندا','New Zealand'],
+  ['فيجي','Fiji'],['بابوا غينيا الجديدة','Papua New Guinea'],
+];
+function populateNationalityDatalist(){
+  const dl = document.getElementById('nationalityList');
+  if (dl && !dl.children.length){
+    dl.innerHTML = NATIONALITIES.map(([ar,en]) => `<option value="${esc(ar)}">${esc(en)}</option>`).join('');
+  }
+}
+populateNationalityDatalist();
 function openModal(id){ document.getElementById(id).classList.add('open'); }
 function closeModal(id){ document.getElementById(id).classList.remove('open'); }
 
