@@ -2765,6 +2765,7 @@ async function loadComplianceReport(runId){
     const lines = r.lines || [];
     let totGross=0, totStat=0, totOther=0, totNet=0, totGosiEr=0, totOtherEr=0, totEmpCost=0, totTax=0, totGosi=0, totHealth=0;
     const depts = {};
+    const branches = {};
     lines.forEach(l => {
       const stat = l.gosiEmp + l.healthIns + l.incomeTax + l.unionFee;
       const other = l.advanceDeduction + l.otherDeduction;
@@ -2775,9 +2776,13 @@ async function loadComplianceReport(runId){
       if (!depts[d]) depts[d] = { emp:0, gross:0, net:0, ded:0, empCost:0 };
       depts[d].emp++; depts[d].gross += l.grossPay; depts[d].net += l.netPay;
       depts[d].ded += (stat+other); depts[d].empCost += l.employerCost;
+      const b = l.cc || l.dept || 'بدون فرع / No Branch';
+      if (!branches[b]) branches[b] = { emp:0, gross:0, net:0, ded:0, empCost:0 };
+      branches[b].emp++; branches[b].gross += l.grossPay; branches[b].net += l.netPay;
+      branches[b].ded += (stat+other); branches[b].empCost += l.employerCost;
     });
     const varPct = totGross > 0 ? ((totNet/totGross)*100).toFixed(1) : 0;
-    _complianceStats = { run: r, company, totGross, totStat, totOther, totNet, totGosiEr, totOtherEr, totEmpCost, totTax, totGosi, totHealth, varPct, depts, empCount: lines.length };
+    _complianceStats = { run: r, company, totGross, totStat, totOther, totNet, totGosiEr, totOtherEr, totEmpCost, totTax, totGosi, totHealth, varPct, depts, branches, empCount: lines.length };
 
     document.getElementById('complianceContent').innerHTML = `
       <div class="section-card">
@@ -2803,6 +2808,9 @@ async function loadComplianceReport(runId){
         <div style="font-size:11px;font-weight:700;color:var(--navy2);margin-bottom:7px;">📂 التكلفة حسب القسم <span class="bl">Cost by Department</span></div>
         <table class="dtbl"><thead><tr><th>القسم</th><th>عدد</th><th>إجمالي</th><th>صافي</th><th>تكلفة التوظيف</th></tr></thead>
         <tbody>${Object.entries(depts).sort((a,b)=>b[1].empCost-a[1].empCost).map(([d,v]) => `<tr><td style="text-align:right;">${esc(d)}</td><td>${v.emp}</td><td>${n(v.gross)}</td><td style="color:var(--navy2);">${n(v.net)}</td><td style="color:#6633cc;font-weight:700;">${n(v.empCost)}</td></tr>`).join('')}</tbody></table>
+        <div style="font-size:11px;font-weight:700;color:var(--navy2);margin:16px 0 7px;">📍 التكلفة حسب الفرع <span class="bl">Cost by Branch</span></div>
+        <table class="dtbl"><thead><tr><th>الفرع</th><th>عدد</th><th>إجمالي</th><th>صافي</th><th>تكلفة التوظيف</th></tr></thead>
+        <tbody>${Object.entries(branches).sort((a,b)=>b[1].empCost-a[1].empCost).map(([b,v]) => `<tr><td style="text-align:right;">${esc(b)}</td><td>${v.emp}</td><td>${n(v.gross)}</td><td style="color:var(--navy2);">${n(v.net)}</td><td style="color:#6633cc;font-weight:700;">${n(v.empCost)}</td></tr>`).join('')}</tbody></table>
       </div>`;
   }catch(e){ toast(e.message, true); }
 }
@@ -2837,6 +2845,9 @@ function printComplianceReport(){
   </div>
   <table><thead><tr><th>القسم / Dept</th><th>عدد / Emp</th><th>إجمالي / Gross</th><th>صافي / Net</th><th>تكلفة / Cost</th></tr></thead>
   <tbody>${Object.entries(s.depts).map(([d,v]) => `<tr><td>${esc(d)}</td><td>${v.emp}</td><td>${n(v.gross)}</td><td>${n(v.net)}</td><td>${n(v.empCost)}</td></tr>`).join('')}</tbody></table>
+  <h2 style="font-size:11pt;margin-top:16px;">📍 التكلفة حسب الفرع <span class="bl">Cost by Branch</span></h2>
+  <table><thead><tr><th>الفرع / Branch</th><th>عدد / Emp</th><th>إجمالي / Gross</th><th>صافي / Net</th><th>تكلفة / Cost</th></tr></thead>
+  <tbody>${Object.entries(s.branches).map(([b,v]) => `<tr><td>${esc(b)}</td><td>${v.emp}</td><td>${n(v.gross)}</td><td>${n(v.net)}</td><td>${n(v.empCost)}</td></tr>`).join('')}</tbody></table>
   ${customFooterHtml(s.company)}
   </body></html>`);
   w.document.close();

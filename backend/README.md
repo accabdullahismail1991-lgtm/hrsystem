@@ -274,6 +274,11 @@ Arabic name stored / English shown as a hint) via a native `<datalist>`
 instead of free text — still just a text input under the hood, so it
 degrades gracefully and doesn't block typing something not on the list.
 
+The Compliance Report now breaks cost down by branch/cost center (📍
+التكلفة حسب الفرع) as well as by department, both on-screen and in the
+printed report — grouped by the payroll line's `cc` snapshot the same
+way the payroll summary print groups its per-branch pages.
+
 **Pending: EOS article-number verification.** The uploaded Executive
 Regulations PDF (اللائحة التنفيذية) doesn't contain the EOS gratuity
 formula itself — that lives in the base نظام العمل (Labor Law), which
