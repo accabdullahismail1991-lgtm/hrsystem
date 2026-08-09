@@ -370,6 +370,7 @@ table.dtbl input[type=number]:focus,table.dtbl input[type=text]:focus{outline:2p
           <div class="fg"><label>&nbsp;</label><button class="btn btn-gold" onclick="printPayrollSummary()">📄 طباعة الملخص <span class="bl">Print Summary</span></button></div>
           <div class="fg"><label>&nbsp;</label><button class="btn btn-navy" onclick="printAllPayrollSlips()">🖨️ طباعة الكل <span class="bl">Print All</span></button></div>
           <div class="fg"><label>&nbsp;</label><button class="btn btn-outline" onclick="openPayrollColumnPicker()">⚙️ أعمدة الطباعة <span class="bl">Print Columns</span></button></div>
+          <div class="fg"><label>&nbsp;</label><button class="btn btn-outline" onclick="printCashReceiptSheet()">🖊️ كشف استلام نقدي <span class="bl">Cash Receipt Sheet</span></button></div>
         </div>
       </div>
       <div class="section-card">
@@ -1717,6 +1718,60 @@ async function printAllPayrollSlips(){
     ${payrollSlipStyleBlock(tc)}</head><body>
     <div class="toolbar"><button onclick="window.print()">🖨️ طباعة الكل / حفظ PDF <span class="bl">Print All / Save as PDF</span></button></div>
     ${pagesHtml}
+    </body></html>`);
+    w.document.close();
+    setTimeout(() => w.print(), 400);
+  }catch(e){ toast(e.message, true); }
+}
+// Cash Salary Receipt / Acknowledgment sheet: one row per Cash-paid
+// employee in this run, with a signature line to acknowledge receipt.
+async function printCashReceiptSheet(){
+  const r = currentPayrollRun;
+  if (!r || !(r.lines||[]).length) return toast('لا توجد بيانات في هذه المسيرة', true);
+  const cashLines = sortRows((r.lines||[]).filter(l => l.payMethod === 'Cash'), makeSortState('namear'), (l,k) => l[k]);
+  if (!cashLines.length) return toast('لا يوجد موظفون بطريقة دفع نقدي في هذه المسيرة', true);
+  try{
+    const company = await api(`/companies/${activeCompanyId}`);
+    const rowsHtml = cashLines.map((l, i) => `<tr>
+      <td>${i+1}</td>
+      <td style="font-family:monospace;">${esc(l.empno||'-')}</td>
+      <td style="text-align:right;">${esc(l.namear)}</td>
+      <td>${esc(l.dept||'-')}</td>
+      <td>${esc(l.cc||'-')}</td>
+      <td style="font-weight:700;">${n(l.netPay)}</td>
+      <td class="sig-cell"></td>
+      <td class="sig-cell"></td>
+    </tr>`).join('');
+    const totalNet = cashLines.reduce((s,l) => s + Number(l.netPay||0), 0);
+    const w = window.open('', '_blank');
+    w.document.write(`<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8">
+    <style>@page{size:A4 landscape;margin:10mm;}body{font-family:Arial;font-size:10pt;direction:rtl;}
+    .bl{opacity:.6;font-size:.85em;}
+    h2{color:#1a3a6b;text-align:center;margin-bottom:2px;}
+    .sub{text-align:center;font-size:9pt;color:#555;margin-bottom:10px;}
+    table{width:100%;border-collapse:collapse;}
+    th{background:#1a3a6b;color:#fff;padding:8px 6px;font-size:9.5pt;}
+    td{padding:9px 6px;border-bottom:1px solid #ddd;text-align:center;}
+    tr:nth-child(even) td{background:#f5f8ff;}
+    .sig-cell{min-width:110px;border-right:1px dashed #bbb;}
+    tfoot td{background:#e8f0ff;font-weight:800;color:#1a3a6b;border-top:2px solid #1a3a6b;}
+    .toolbar{display:flex;gap:8px;justify-content:center;margin-bottom:12px;}
+    .toolbar button{padding:8px 16px;border:none;border-radius:6px;cursor:pointer;font-size:11.5pt;font-weight:600;font-family:inherit;background:#0f2557;color:#fff;}
+    @media print{.toolbar{display:none;}}
+    </style></head><body>
+    <div class="toolbar"><button onclick="window.print()">🖨️ طباعة / حفظ PDF <span class="bl">Print / Save as PDF</span></button></div>
+    ${customHeaderHtml(company)}
+    <h2>${esc(company.nameAr)} <span class="bl">${esc(company.nameEn)}</span></h2>
+    <div class="sub">كشف استلام رواتب نقدي <span class="bl">Cash Salary Receipt Sheet</span> — ${r.month}/${r.yearG} ${r.yearH?('هـ'+esc(r.yearH)):''} — عدد المستلمين <span class="bl">Recipients</span>: ${cashLines.length}</div>
+    <table><thead><tr>
+      <th>#</th><th>الرقم الوظيفي<span class="bl">Emp No.</span></th><th>الاسم<span class="bl">Name</span></th>
+      <th>القسم<span class="bl">Dept</span></th><th>الفرع<span class="bl">Branch</span></th>
+      <th>الصافي<span class="bl">Net Pay</span></th><th>التوقيع<span class="bl">Signature</span></th><th>التاريخ<span class="bl">Date</span></th>
+    </tr></thead>
+    <tbody>${rowsHtml}</tbody>
+    <tfoot><tr><td colspan="5" style="text-align:left;">الإجمالي <span class="bl">Total</span></td><td>${n(totalNet)}</td><td colspan="2"></td></tr></tfoot>
+    </table>
+    ${customFooterHtml(company)}
     </body></html>`);
     w.document.close();
     setTimeout(() => w.print(), 400);

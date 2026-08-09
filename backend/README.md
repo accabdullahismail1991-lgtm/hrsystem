@@ -259,6 +259,12 @@ picker) stack to one column, and modals/tables were checked to confirm
 neither introduces horizontal page overflow at common tablet widths
 (iPad portrait/landscape, Android tablet).
 
+A "🖊️ كشف استلام نقدي / Cash Receipt Sheet" button on the Payroll page
+prints an acknowledgment sheet listing only the run's Cash-paid employees
+(Transfer-paid employees excluded), each with their net pay, a signature
+line, and a date line, plus a total row — for physically collecting
+signed proof of cash salary receipt.
+
 A new "🏖️ الإجازات / Leaves" page covers annual, sick, and the fixed-
 duration occasion leave types (see above) — a request form with a live
 balance/cap preview, and an approve/reject/delete table for HR.
