@@ -1616,7 +1616,7 @@ function renderPayrollTable(){
       <td>${editable('overtime', l.overtime)}</td>
       <td>${editable('bonus', l.bonus)}</td>
       <td style="font-weight:700;">${esc(l.grossPay)}</td>
-      <td>${editable('advanceDeduction', l.advanceDeduction)}</td>
+      <td>${editable('advanceDeduction', l.advanceDeduction, 45)}${canEdit && l.advanceDeduction > 0 ? `<button class="btn btn-outline btn-sm" style="padding:2px 6px;margin-inline-start:3px;" title="تأجيل قسط السلفة لهذا الشهر / Defer this month's advance installment" onclick="deferAdvanceDeduction(${l.id})">🕐</button>` : ''}</td>
       <td>${editable('otherDeduction', l.otherDeduction)}</td>
       <td>${esc(l.totalDeductions)}</td>
       <td style="font-weight:700;color:var(--green);">${esc(l.netPay)}</td>
@@ -2047,6 +2047,17 @@ async function printPayrollSummary(){
 async function updatePayrollLine(lineId, field, value){
   try{
     await api(`/companies/${activeCompanyId}/payroll-runs/${currentPayrollRun.id}/lines/${lineId}`, { method:'PATCH', body: JSON.stringify({ [field]: Number(value) || 0 }) });
+    await loadPayrollRun(currentPayrollRun.id);
+  }catch(e){ toast(e.message, true); }
+}
+// Skips this run's advance-installment deduction for one employee without
+// touching the advance's own repayment schedule/remaining balance — the
+// installment simply isn't withheld this month and can be collected later.
+async function deferAdvanceDeduction(lineId){
+  if (!confirm('تأجيل قسط السلفة لهذا الشهر؟ لن يُخصم من هذه المسيرة.\nDefer this month\'s advance installment? It will not be deducted from this run.')) return;
+  try{
+    await api(`/companies/${activeCompanyId}/payroll-runs/${currentPayrollRun.id}/lines/${lineId}`, { method:'PATCH', body: JSON.stringify({ advanceDeduction: 0 }) });
+    toast('تم تأجيل قسط السلفة لهذا الشهر');
     await loadPayrollRun(currentPayrollRun.id);
   }catch(e){ toast(e.message, true); }
 }

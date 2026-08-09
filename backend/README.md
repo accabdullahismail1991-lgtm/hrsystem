@@ -279,6 +279,14 @@ The Compliance Report now breaks cost down by branch/cost center (📍
 printed report — grouped by the payroll line's `cc` snapshot the same
 way the payroll summary print groups its per-branch pages.
 
+A "🕐" defer button now appears next to a payroll line's advance-deduction
+field whenever it's non-zero — one click skips that installment for the
+current run (sets it to 0) without touching the advance's own repayment
+schedule or remaining balance, so it can simply be collected in a later
+run. (Advance-deduction amounts are still entered manually per run, same
+as the original app — neither app auto-derives them from the advance's
+`monthly` installment field.)
+
 **Pending: EOS article-number verification.** The uploaded Executive
 Regulations PDF (اللائحة التنفيذية) doesn't contain the EOS gratuity
 formula itself — that lives in the base نظام العمل (Labor Law), which
