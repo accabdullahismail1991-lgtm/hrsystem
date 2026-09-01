@@ -23,7 +23,20 @@ multi-tenancy on top of the standalone payroll app in `../index.html`:
 - **Employees** — the regular payroll headcount.
 - **Contractors** — a separate module for outsourced/temporary labor under
   individual contracts (daily/monthly/project/hourly), kept out of the
-  regular employee table.
+  regular employee table. Full identity/registry fields (ID/Iqama/CR
+  number, nationality, the **sponsor/employer they actually belong to**
+  since they're outside this company's kafala, bank/IBAN), editable like
+  the Employee record.
+- **Contractor Payroll** (`src/routes/contractorPayroll.js`,
+  `contractor_payroll_runs`/`contractor_payroll_lines` tables) — a payment
+  run system for contractors, entirely separate from the employee payroll
+  (no GOSI/statutory deductions — these workers are outside the
+  company's kafala). Generate pulls in active contractors at their
+  contract rate (editable per line, e.g. to reflect actual days/hours for
+  daily/hourly contracts); printable summary, a per-contractor payment
+  slip with a signature/date line (individually and as "Print All"), a
+  signature-collection sheet across all contractors in a run, and an
+  Excel export.
 - **Branches**.
 - **Payroll runs** — one run per month/year, with a line per employee
   (basic/housing/transport/other/overtime/bonus, absence days, deductions).

@@ -171,6 +171,7 @@ table.dtbl input[type=number]:focus,table.dtbl input[type=text]:focus{outline:2p
     <div class="role-badge" id="roleBadge"></div>
     <div class="nav-item active" data-page="employees" onclick="showPage('employees')">👥 <span>الموظفون<span class="bl">Employees</span></span></div>
     <div class="nav-item" data-page="contractors" onclick="showPage('contractors')">🧰 <span>العمالة الخارجية / المقاولين<span class="bl">Contractors</span></span></div>
+    <div class="nav-item" data-page="contractorPayroll" onclick="showPage('contractorPayroll')">🧾 <span>مسير العمالة الخارجية<span class="bl">Contractor Payroll</span></span></div>
     <div class="nav-item" data-page="branches" onclick="showPage('branches')">🏬 <span>الفروع<span class="bl">Branches</span></span></div>
     <div class="nav-item" data-page="dailyHours" onclick="showPage('dailyHours')">⏱️ <span>سجل الساعات اليومية<span class="bl">Daily Hours Log</span></span></div>
     <div class="nav-item" data-page="payroll" onclick="showPage('payroll')">💰 <span>مسيرات الرواتب<span class="bl">Payroll</span></span></div>
@@ -313,7 +314,7 @@ table.dtbl input[type=number]:focus,table.dtbl input[type=text]:focus{outline:2p
     <div id="page-contractors" class="page-content hide">
       <div class="section-card">
         <div class="perm-note" id="conPermNote"></div>
-        <button class="btn btn-navy" id="conAddBtn" onclick="openModal('conModalOverlay')">+ إضافة مقاول <span class="bl">Add Contractor</span></button>
+        <button class="btn btn-navy" id="conAddBtn" onclick="openContractorModal()">+ إضافة مقاول <span class="bl">Add Contractor</span></button>
       </div>
       <div class="section-card">
         <div class="filter-bar"><input id="con_filter" placeholder="🔍 بحث بالاسم/النوع/المشروع... / Search Name/Type/Project..." oninput="renderContractorsTable()"></div>
@@ -322,21 +323,75 @@ table.dtbl input[type=number]:focus,table.dtbl input[type=text]:focus{outline:2p
     </div>
 
     <div class="overlay" id="conModalOverlay">
-      <div class="modal" style="width:min(96vw,480px);">
-        <div class="modal-head"><h3>إضافة مقاول <span class="bl">Add Contractor</span></h3><button class="close-btn" onclick="closeModal('conModalOverlay')">✕</button></div>
+      <div class="modal" style="width:min(96vw,640px);">
+        <div class="modal-head"><h3 id="conModalTitle">إضافة مقاول <span class="bl">Add Contractor</span></h3><button class="close-btn" onclick="closeModal('conModalOverlay')">✕</button></div>
+        <input type="hidden" id="c_id">
+        <div class="section-title">🪪 الهوية <span class="bl">Identity</span></div>
         <div class="form-grid">
           <div class="fg"><label>الاسم*<span class="bl">Name*</span></label><input id="c_name"></div>
+          <div class="fg"><label>نوع المقاول<span class="bl">Contractor Type</span></label>
+            <select id="c_contractorType"><option value="individual">فرد / Individual</option><option value="agency">شركة/مؤسسة / Agency</option></select>
+          </div>
+          <div class="fg"><label>نوع الهوية<span class="bl">ID Type</span></label>
+            <select id="c_idType"><option value="">—</option><option value="Iqama">إقامة / Iqama</option><option value="Passport">جواز سفر / Passport</option><option value="CR">سجل تجاري / CR</option></select>
+          </div>
+          <div class="fg"><label>رقم الهوية<span class="bl">ID No.</span></label><input id="c_idNo"></div>
+          <div class="fg"><label>الجنسية<span class="bl">Nationality</span></label><input id="c_nat" list="nationalityList" placeholder="اكتب للبحث... / Type to search..." autocomplete="off"></div>
+          <div class="fg"><label>الجهة الكافلة<span class="bl">Sponsor / Employer</span></label><input id="c_sponsorName" title="الجهة التي يتبعها هذا العامل خارج نطاق كفالة شركتنا / The entity this worker is actually sponsored/employed by, outside our company's kafala"></div>
+        </div>
+        <div class="section-title">📄 التعاقد <span class="bl">Contract</span></div>
+        <div class="form-grid">
           <div class="fg"><label>نوع التعاقد<span class="bl">Contract Type</span></label>
             <select id="c_contractType"><option value="monthly">شهري / Monthly</option><option value="daily">يومي / Daily</option><option value="project">مشروع / Project</option><option value="hourly">ساعة / Hourly</option></select>
           </div>
           <div class="fg"><label>الأجر<span class="bl">Rate</span></label><input id="c_rate" type="number"></div>
+          <div class="fg"><label>العملة<span class="bl">Currency</span></label><input id="c_currency" value="SAR"></div>
+          <div class="fg"><label>القسم<span class="bl">Dept</span></label><input id="c_dept"></div>
           <div class="fg"><label>الجهة/المشروع<span class="bl">Project</span></label><input id="c_project"></div>
+          <div class="fg"><label>تاريخ البدء<span class="bl">Start Date</span></label><input id="c_startDate" type="date"></div>
+          <div class="fg"><label>تاريخ الانتهاء<span class="bl">End Date</span></label><input id="c_endDate" type="date"></div>
+          <div class="fg"><label>الحالة<span class="bl">Status</span></label>
+            <select id="c_status"><option value="Active">نشط / Active</option><option value="Completed">مكتمل / Completed</option><option value="Terminated">منتهي / Terminated</option></select>
+          </div>
+        </div>
+        <div class="section-title">📞 التواصل والدفع <span class="bl">Contact & Payment</span></div>
+        <div class="form-grid">
+          <div class="fg"><label>الجوال<span class="bl">Phone</span></label><input id="c_phone"></div>
+          <div class="fg"><label>البريد الإلكتروني<span class="bl">Email</span></label><input id="c_email" type="email"></div>
+          <div class="fg"><label>البنك<span class="bl">Bank</span></label><input id="c_bank"></div>
+          <div class="fg"><label>IBAN</label><input id="c_iban"></div>
+        </div>
+        <div class="form-grid">
+          <div class="fg" style="grid-column:1/-1;"><label>ملاحظات<span class="bl">Notes</span></label><input id="c_notes"></div>
         </div>
         <div style="display:flex;gap:8px;margin-top:6px;">
-          <button class="btn btn-navy" onclick="createContractor()">+ إضافة <span class="bl">Add</span></button>
+          <button class="btn btn-navy" id="conSaveBtn" onclick="createContractor()">+ إضافة <span class="bl">Add</span></button>
           <button class="btn btn-outline" onclick="closeModal('conModalOverlay')">إلغاء <span class="bl">Cancel</span></button>
         </div>
       </div>
+    </div>
+
+    <div id="page-contractorPayroll" class="page-content hide">
+      <div class="section-card">
+        <div class="perm-note" id="cpPermNote"></div>
+        <p style="font-size:11px;color:var(--muted);margin-bottom:10px;">مسير مستقل بالكامل عن مسيرات رواتب الموظفين — خاص بدفعات العمالة الخارجية/المقاولين الذين هم خارج نطاق كفالة الشركة. <span class="bl">Fully separate from the employee payroll runs — for payments to external/subcontracted labor outside the company's kafala.</span></p>
+        <div class="form-grid" id="cpForm">
+          <div class="fg"><label>الشهر (١-١٢)*<span class="bl">Month (1-12)*</span></label><input id="cp_month" type="number" min="1" max="12"></div>
+          <div class="fg"><label>السنة الميلادية*<span class="bl">Gregorian Year*</span></label><input id="cp_yearG" type="number"></div>
+          <div class="fg"><label>&nbsp;</label><button class="btn btn-navy" onclick="createContractorPayrollRun()">+ إنشاء مسير جديد</button></div>
+        </div>
+      </div>
+      <div class="section-card">
+        <div class="form-grid" style="margin-bottom:0;">
+          <div class="fg"><label>اختر مسير<span class="bl">Select Run</span></label><select id="cp_runSelect" onchange="loadContractorPayrollRun(this.value)"></select></div>
+          <div class="fg" id="cpGenerateWrap" style="display:none;"><label>&nbsp;</label><button class="btn btn-outline" onclick="generateContractorPayrollLines()">↻ توليد من المقاولين النشطين <span class="bl">Generate</span></button></div>
+          <div class="fg"><label>&nbsp;</label><button class="btn btn-gold" onclick="printContractorPayrollSummary()">📄 طباعة الملخص <span class="bl">Print Summary</span></button></div>
+          <div class="fg"><label>&nbsp;</label><button class="btn btn-navy" onclick="printAllContractorSlips()">🖨️ طباعة الكل <span class="bl">Print All</span></button></div>
+          <div class="fg"><label>&nbsp;</label><button class="btn btn-outline" onclick="printContractorReceiptSheet()">🖊️ كشف استلام للتوقيع <span class="bl">Signature Sheet</span></button></div>
+          <div class="fg"><label>&nbsp;</label><button class="btn btn-outline" onclick="exportContractorPayrollExcel()">📤 تصدير Excel <span class="bl">Export</span></button></div>
+        </div>
+      </div>
+      <div class="section-card"><div class="tbl-wrap"><table class="dtbl" id="cpTable"></table></div></div>
     </div>
 
     <div id="page-branches" class="page-content hide">
@@ -899,6 +954,7 @@ function roleLabel(r){
 
 const PAGE_TITLES = {
   employees:'الموظفون / Employees', contractors:'العمالة الخارجية / المقاولين — Contractors',
+  contractorPayroll:'مسير العمالة الخارجية / Contractor Payroll',
   branches:'الفروع / Branches', dailyHours:'سجل الساعات اليومية / Daily Hours Log',
   payroll:'مسيرات الرواتب / Payroll Runs',
   advances:'السلف والتسويات / Advances & Settlements', leaves:'الإجازات / Leaves',
@@ -919,6 +975,7 @@ function showPage(page){
   document.getElementById('pageTitle').textContent = PAGE_TITLES[page];
   if (page === 'employees') loadEmployees();
   if (page === 'contractors') loadContractors();
+  if (page === 'contractorPayroll') loadContractorPayrollPage();
   if (page === 'branches') loadBranches();
   if (page === 'dailyHours') loadDailyHoursPage();
   if (page === 'payroll') loadPayrollRuns();
@@ -1241,34 +1298,361 @@ function sortContractorsBy(key){
 function renderContractorsTable(){
   const canEdit = canManage('manageContractors');
   const q = document.getElementById('con_filter')?.value || '';
-  let rows = filterRows(_contractorsCache, q, ['name','contractType','project','status']);
+  let rows = filterRows(_contractorsCache, q, ['name','contractType','project','status','sponsorName','nat']);
   rows = sortRows(rows, _conSort, (c,k) => k==='rate' ? Number(c[k])||0 : c[k]);
-  const del = canEdit ? '<th>حذف</th>' : '';
-  let html = `<thead><tr>${sortTh('الاسم','name',_conSort,'sortContractorsBy')}${sortTh('نوع التعاقد','contractType',_conSort,'sortContractorsBy')}${sortTh('الأجر','rate',_conSort,'sortContractorsBy')}${sortTh('الجهة/المشروع','project',_conSort,'sortContractorsBy')}${sortTh('الحالة','status',_conSort,'sortContractorsBy')}${del}</tr></thead><tbody>`;
+  const del = canEdit ? '<th>تعديل</th><th>حذف</th>' : '';
+  let html = `<thead><tr>${sortTh('الاسم','name',_conSort,'sortContractorsBy')}${sortTh('نوع التعاقد','contractType',_conSort,'sortContractorsBy')}${sortTh('الأجر','rate',_conSort,'sortContractorsBy')}${sortTh('الجهة الكافلة','sponsorName',_conSort,'sortContractorsBy')}${sortTh('الجهة/المشروع','project',_conSort,'sortContractorsBy')}${sortTh('الحالة','status',_conSort,'sortContractorsBy')}${del}</tr></thead><tbody>`;
   rows.forEach(c => {
-    html += `<tr><td>${esc(c.name)}</td><td>${esc(c.contractType)}</td><td>${esc(c.rate)} ${esc(c.currency)}</td><td>${esc(c.project||'-')}</td><td><span class="badge">${esc(c.status)}</span></td>`;
-    if (canEdit) html += `<td><button class="btn btn-red btn-sm" onclick="deleteContractor(${c.id})">🗑</button></td>`;
+    html += `<tr><td style="text-align:right;">${esc(c.name)}</td><td>${esc(c.contractType)}</td><td>${esc(c.rate)} ${esc(c.currency)}</td><td>${esc(c.sponsorName||'-')}</td><td>${esc(c.project||'-')}</td><td><span class="badge">${esc(c.status)}</span></td>`;
+    if (canEdit){
+      html += `<td><button class="btn btn-outline btn-sm" onclick="editContractor(${c.id})">✏️</button></td>`;
+      html += `<td><button class="btn btn-red btn-sm" onclick="deleteContractor(${c.id})">🗑</button></td>`;
+    }
     html += `</tr>`;
   });
   document.getElementById('conTable').innerHTML = html + '</tbody>';
 }
+const CON_FIELD_IDS = ['c_name','c_contractorType','c_idType','c_idNo','c_nat','c_sponsorName','c_contractType','c_rate','c_currency','c_dept','c_project','c_startDate','c_endDate','c_status','c_phone','c_email','c_bank','c_iban','c_notes'];
+function resetContractorForm(){
+  document.getElementById('c_id').value = '';
+  CON_FIELD_IDS.forEach(id => { const el = document.getElementById(id); if (el) el.value = el.tagName === 'SELECT' ? el.options[0].value : ''; });
+  document.getElementById('c_currency').value = 'SAR';
+  document.getElementById('c_status').value = 'Active';
+  document.getElementById('conSaveBtn').innerHTML = '+ إضافة <span class="bl">Add</span>';
+  document.getElementById('conModalTitle').innerHTML = 'إضافة مقاول <span class="bl">Add Contractor</span>';
+}
+function openContractorModal(){
+  resetContractorForm();
+  openModal('conModalOverlay');
+}
+function editContractor(id){
+  const c = _contractorsCache.find(x => x.id === id);
+  if (!c) return;
+  resetContractorForm();
+  document.getElementById('c_id').value = c.id;
+  document.getElementById('c_name').value = c.name || '';
+  document.getElementById('c_contractorType').value = c.contractorType || 'individual';
+  document.getElementById('c_idType').value = c.idType || '';
+  document.getElementById('c_idNo').value = c.idNo || '';
+  document.getElementById('c_nat').value = c.nat || '';
+  document.getElementById('c_sponsorName').value = c.sponsorName || '';
+  document.getElementById('c_contractType').value = c.contractType || 'monthly';
+  document.getElementById('c_rate').value = c.rate || 0;
+  document.getElementById('c_currency').value = c.currency || 'SAR';
+  document.getElementById('c_dept').value = c.dept || '';
+  document.getElementById('c_project').value = c.project || '';
+  document.getElementById('c_startDate').value = c.startDate || '';
+  document.getElementById('c_endDate').value = c.endDate || '';
+  document.getElementById('c_status').value = c.status || 'Active';
+  document.getElementById('c_phone').value = c.phone || '';
+  document.getElementById('c_email').value = c.email || '';
+  document.getElementById('c_bank').value = c.bank || '';
+  document.getElementById('c_iban').value = c.iban || '';
+  document.getElementById('c_notes').value = c.notes || '';
+  document.getElementById('conSaveBtn').innerHTML = '💾 حفظ التعديلات <span class="bl">Save</span>';
+  document.getElementById('conModalTitle').innerHTML = 'تعديل مقاول <span class="bl">Edit Contractor</span>';
+  openModal('conModalOverlay');
+}
 async function createContractor(){
   try{
+    const id = document.getElementById('c_id').value;
     const body = {
       name: document.getElementById('c_name').value.trim(),
+      contractorType: document.getElementById('c_contractorType').value,
+      idType: document.getElementById('c_idType').value || undefined,
+      idNo: document.getElementById('c_idNo').value.trim() || undefined,
+      nat: document.getElementById('c_nat').value.trim() || undefined,
+      sponsorName: document.getElementById('c_sponsorName').value.trim() || undefined,
       contractType: document.getElementById('c_contractType').value,
       rate: Number(document.getElementById('c_rate').value) || 0,
+      currency: document.getElementById('c_currency').value.trim() || 'SAR',
+      dept: document.getElementById('c_dept').value.trim() || undefined,
       project: document.getElementById('c_project').value.trim() || undefined,
+      startDate: document.getElementById('c_startDate').value || undefined,
+      endDate: document.getElementById('c_endDate').value || undefined,
+      status: document.getElementById('c_status').value,
+      phone: document.getElementById('c_phone').value.trim() || undefined,
+      email: document.getElementById('c_email').value.trim() || undefined,
+      bank: document.getElementById('c_bank').value.trim() || undefined,
+      iban: document.getElementById('c_iban').value.trim() || undefined,
+      notes: document.getElementById('c_notes').value.trim() || undefined,
     };
     if (!body.name) return toast('الاسم مطلوب', true);
-    await api(`/companies/${activeCompanyId}/contractors`, { method:'POST', body: JSON.stringify(body) });
-    ['c_name','c_rate','c_project'].forEach(id => document.getElementById(id).value = '');
-    closeModal('conModalOverlay'); toast('تمت الإضافة'); loadContractors();
+    if (id) await api(`/companies/${activeCompanyId}/contractors/${id}`, { method:'PATCH', body: JSON.stringify(body) });
+    else await api(`/companies/${activeCompanyId}/contractors`, { method:'POST', body: JSON.stringify(body) });
+    closeModal('conModalOverlay'); resetContractorForm(); toast(id ? 'تم حفظ التعديلات' : 'تمت الإضافة'); loadContractors();
   }catch(e){ toast(e.message, true); }
 }
 async function deleteContractor(id){
   try{ await api(`/companies/${activeCompanyId}/contractors/${id}`, { method:'DELETE' }); loadContractors(); }
   catch(e){ toast(e.message, true); }
+}
+
+// --- Contractor Payroll (external labor — fully separate from employee payroll) ---
+let currentContractorPayrollRun = null;
+async function loadContractorPayrollPage(){
+  const canEdit = canManage('managePayroll');
+  document.getElementById('cpForm').style.display = canEdit ? '' : 'none';
+  document.getElementById('cpPermNote').textContent = canEdit ? '' : 'صلاحيتك الحالية للمشاهدة فقط في هذه الشركة.';
+  await loadContractorPayrollRuns();
+}
+async function loadContractorPayrollRuns(){
+  try{
+    const runs = await api(`/companies/${activeCompanyId}/contractor-payroll-runs`);
+    const sel = document.getElementById('cp_runSelect');
+    sel.innerHTML = '<option value="">—</option>' + runs.map(r => `<option value="${r.id}">${r.month}/${r.yearG} — ${esc(r.status)}</option>`).join('');
+    if (runs.length){ sel.value = String(runs[0].id); await loadContractorPayrollRun(runs[0].id); }
+    else { currentContractorPayrollRun = null; document.getElementById('cpTable').innerHTML = ''; }
+  }catch(e){ toast(e.message, true); }
+}
+async function createContractorPayrollRun(){
+  try{
+    const body = {
+      month: Number(document.getElementById('cp_month').value) || undefined,
+      yearG: Number(document.getElementById('cp_yearG').value) || undefined,
+    };
+    if (!body.month || !body.yearG) return toast('الشهر والسنة مطلوبان', true);
+    await api(`/companies/${activeCompanyId}/contractor-payroll-runs`, { method:'POST', body: JSON.stringify(body) });
+    toast('تم إنشاء المسير'); loadContractorPayrollRuns();
+  }catch(e){ toast(e.message, true); }
+}
+async function loadContractorPayrollRun(id){
+  if (!id){ currentContractorPayrollRun = null; document.getElementById('cpTable').innerHTML = ''; return; }
+  try{
+    currentContractorPayrollRun = await api(`/companies/${activeCompanyId}/contractor-payroll-runs/${id}`);
+    document.getElementById('cpGenerateWrap').style.display = canManage('managePayroll') ? '' : 'none';
+    renderContractorPayrollTable();
+  }catch(e){ toast(e.message, true); }
+}
+async function generateContractorPayrollLines(){
+  if (!currentContractorPayrollRun) return toast('اختر مسيراً أولاً', true);
+  try{
+    await api(`/companies/${activeCompanyId}/contractor-payroll-runs/${currentContractorPayrollRun.id}/generate`, { method:'POST' });
+    toast('تم التوليد'); loadContractorPayrollRun(currentContractorPayrollRun.id);
+  }catch(e){ toast(e.message, true); }
+}
+function renderContractorPayrollTable(){
+  const canEdit = canManage('managePayroll');
+  const r = currentContractorPayrollRun;
+  const del = canEdit ? '<th>حذف</th>' : '';
+  let html = `<thead><tr>
+    <th>#</th><th>الاسم</th><th>رقم الهوية</th><th>نوع التعاقد</th><th>الجهة الكافلة</th>
+    <th>المبلغ</th><th>الخصم</th><th>الصافي</th><th>طريقة الدفع</th><th>ملاحظات</th><th>طباعة</th>${del}</tr></thead><tbody>`;
+  let totalAmount = 0, totalNet = 0;
+  (r.lines||[]).forEach((l,i) => {
+    totalAmount += l.amount; totalNet += l.netAmount;
+    const editable = canEdit ? (field, val, w) => `<input type="number" value="${val}" style="width:${w||70}px;" onchange="updateContractorPayrollLine(${l.id}, '${field}', this.value)">` : (field, val) => esc(val);
+    const editableNote = canEdit ? `<input type="text" value="${esc(l.note||'')}" style="width:110px;" onchange="updateContractorPayrollLine(${l.id}, 'note', this.value)">` : esc(l.note||'-');
+    html += `<tr>
+      <td>${i+1}</td>
+      <td style="text-align:right;">${esc(l.name)}</td>
+      <td style="font-family:monospace;">${esc(l.idNo||'-')}</td>
+      <td>${esc(l.contractType||'-')}</td>
+      <td>${esc(l.sponsorName||'-')}</td>
+      <td>${editable('amount', l.amount)}</td>
+      <td>${editable('deduction', l.deduction)}</td>
+      <td style="font-weight:700;color:var(--green);">${esc(l.netAmount)}</td>
+      <td>${esc(l.payMethod)}</td>
+      <td>${editableNote}</td>
+      <td><button class="btn btn-outline btn-sm" onclick="printContractorSlip(${l.id})">🖨️</button></td>`;
+    if (canEdit) html += `<td><button class="btn btn-red btn-sm" onclick="deleteContractorPayrollLine(${l.id})">🗑</button></td>`;
+    html += `</tr>`;
+  });
+  html += `<tr class="tot-row"><td colspan="5" style="text-align:left;font-weight:700;">الإجمالي / Total</td><td style="font-weight:700;">${totalAmount.toLocaleString()}</td><td></td><td style="font-weight:700;color:var(--green);">${totalNet.toLocaleString()}</td><td colspan="2"></td><td></td>${canEdit?'<td></td>':''}</tr>`;
+  document.getElementById('cpTable').innerHTML = html + '</tbody>';
+}
+async function updateContractorPayrollLine(lineId, field, value){
+  try{
+    const body = field === 'note' || field === 'payMethod' ? { [field]: value } : { [field]: Number(value) || 0 };
+    await api(`/companies/${activeCompanyId}/contractor-payroll-runs/${currentContractorPayrollRun.id}/lines/${lineId}`, { method:'PATCH', body: JSON.stringify(body) });
+    await loadContractorPayrollRun(currentContractorPayrollRun.id);
+  }catch(e){ toast(e.message, true); }
+}
+async function deleteContractorPayrollLine(lineId){
+  try{ await api(`/companies/${activeCompanyId}/contractor-payroll-runs/${currentContractorPayrollRun.id}/lines/${lineId}`, { method:'DELETE' }); loadContractorPayrollRun(currentContractorPayrollRun.id); }
+  catch(e){ toast(e.message, true); }
+}
+
+// Single contractor payment slip — self-contained (own header/logo/footer)
+// with a signature + date line for the external worker to sign acknowledging
+// receipt, reused by both the single-line print and "Print All".
+function buildContractorSlipHtml(company, r, l, tc){
+  return `${customHeaderHtml(company)}
+    <div class="slip">
+      <div class="slip-hdr">
+        ${company.printShowLogo!==false && company.logoDataUrl?`<img src="${company.logoDataUrl}" class="s-logo" alt="logo">`:`<div class="s-logo" style="display:flex;align-items:center;justify-content:center;font-size:9pt;color:rgba(255,255,255,.4);">LOGO</div>`}
+        <div style="flex:1;text-align:center;padding:0 10px;">
+          <div class="s-title-ar">إيصال استلام دفعة — ${r.month}/${r.yearG}${r.yearH?' هـ'+esc(r.yearH):''}</div>
+          <div class="s-title-en">Contractor Payment Receipt</div>
+        </div>
+        <div style="text-align:left;">
+          <div class="s-co-ar">${esc(company.nameAr)}</div>
+          <div class="s-co-en">${esc(company.nameEn)}</div>
+        </div>
+      </div>
+      <div class="slip-info-row" style="grid-template-columns:repeat(4,1fr);">
+        <div class="sic"><div class="sic-lbl">Name / الاسم</div><div class="sic-val">${esc(l.name)}</div></div>
+        <div class="sic"><div class="sic-lbl">ID No. / رقم الهوية</div><div class="sic-val" style="font-family:monospace;">${esc(l.idNo||'-')}</div></div>
+        <div class="sic"><div class="sic-lbl">Contract Type / نوع التعاقد</div><div class="sic-val">${esc(l.contractType||'-')}</div></div>
+        <div class="sic"><div class="sic-lbl">Sponsor / الجهة الكافلة</div><div class="sic-val">${esc(l.sponsorName||'-')}</div></div>
+      </div>
+      <div class="slip-body" style="grid-template-columns:1fr;">
+        <div class="slip-sec">
+          ${sr('المبلغ المستحق','Amount Due', l.amount)}
+          ${sr('الخصومات','Deductions', -l.deduction, true)}
+        </div>
+      </div>
+      <div class="slip-totals" style="grid-template-columns:1fr;">
+        <div class="stc"><div class="stc-lbl">الصافي المستلم<span class="stc-lbl-en">Net Received</span></div><div class="stc-amt n">${n(l.netAmount)} SAR</div></div>
+      </div>
+      <div class="slip-footer">
+        <div class="sfc"><span class="sfc-lbl">الاسم<span class="sfc-lbl-en">Name:</span></span><div class="sfc-sig">${esc(l.name)}</div></div>
+        <div class="sfc"><span class="sfc-lbl">التوقيع<span class="sfc-lbl-en">Signature:</span></span><div class="sfc-sig">&nbsp;</div></div>
+        <div class="sfc"><span class="sfc-lbl">التاريخ<span class="sfc-lbl-en">Date:</span></span><div class="sfc-sig">&nbsp;/&nbsp;/${r.yearG}</div></div>
+      </div>
+    </div>
+    ${customFooterHtml(company)}`;
+}
+async function printContractorSlip(lineId){
+  const r = currentContractorPayrollRun;
+  const l = (r.lines||[]).find(x => x.id === lineId);
+  if (!l) return;
+  try{
+    const company = await api(`/companies/${activeCompanyId}`);
+    const tc = THEME_PRESETS[company.theme] || THEME_PRESETS.navy;
+    const w = window.open('', '_blank');
+    w.document.write(`<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8">
+    ${payrollSlipStyleBlock(tc)}</head><body>
+    <div class="toolbar"><button onclick="window.print()">🖨️ طباعة / حفظ PDF <span class="bl">Print / Save as PDF</span></button></div>
+    ${buildContractorSlipHtml(company, r, l, tc)}
+    </body></html>`);
+    w.document.close();
+    setTimeout(() => w.print(), 400);
+  }catch(e){ toast(e.message, true); }
+}
+async function printAllContractorSlips(){
+  const r = currentContractorPayrollRun;
+  if (!r || !(r.lines||[]).length) return toast('لا توجد بيانات في هذا المسير', true);
+  try{
+    const company = await api(`/companies/${activeCompanyId}`);
+    const tc = THEME_PRESETS[company.theme] || THEME_PRESETS.navy;
+    const pagesHtml = r.lines.map(l => `<div class="slip-page">${buildContractorSlipHtml(company, r, l, tc)}</div>`).join('');
+    const w = window.open('', '_blank');
+    w.document.write(`<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8">
+    ${payrollSlipStyleBlock(tc)}</head><body>
+    <div class="toolbar"><button onclick="window.print()">🖨️ طباعة الكل / حفظ PDF <span class="bl">Print All / Save as PDF</span></button></div>
+    ${pagesHtml}
+    </body></html>`);
+    w.document.close();
+    setTimeout(() => w.print(), 400);
+  }catch(e){ toast(e.message, true); }
+}
+async function printContractorPayrollSummary(){
+  const r = currentContractorPayrollRun;
+  if (!r || !(r.lines||[]).length) return toast('لا توجد بيانات في هذا المسير', true);
+  try{
+    const company = await api(`/companies/${activeCompanyId}`);
+    let totAmount = 0, totDed = 0, totNet = 0;
+    const rows = r.lines.map((l,i) => {
+      totAmount += l.amount; totDed += l.deduction; totNet += l.netAmount;
+      return `<tr><td>${i+1}</td><td style="text-align:right;">${esc(l.name)}</td><td style="font-family:monospace;">${esc(l.idNo||'-')}</td>
+        <td>${esc(l.contractType||'-')}</td><td>${esc(l.sponsorName||'-')}</td>
+        <td style="font-weight:700;">${n(l.amount)}</td><td>${n(l.deduction)}</td>
+        <td style="font-weight:700;color:#1a6b3a;">${n(l.netAmount)}</td><td>${esc(l.payMethod)}</td></tr>`;
+    }).join('');
+    const w = window.open('', '_blank');
+    w.document.write(`<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8">
+    <style>@page{size:A4 landscape;margin:10mm;}body{font-family:Arial;font-size:9.5pt;direction:rtl;}
+    .bl{opacity:.6;font-size:.85em;}
+    h2{color:#1a3a6b;text-align:center;margin-bottom:2px;}
+    .sub{text-align:center;font-size:9pt;color:#555;margin-bottom:10px;}
+    table{width:100%;border-collapse:collapse;}th{background:#1a3a6b;color:#fff;padding:6px;}
+    td{padding:5px;border-bottom:1px solid #ddd;text-align:center;}
+    tr:nth-child(even) td{background:#f5f8ff;}
+    .tot td{background:#e8f0ff;font-weight:800;color:#1a3a6b;border-top:2px solid #1a3a6b;}
+    .toolbar{display:flex;gap:8px;justify-content:center;margin-bottom:12px;}
+    .toolbar button{padding:8px 16px;border:none;border-radius:6px;cursor:pointer;font-size:11.5pt;font-weight:600;font-family:inherit;background:#0f2557;color:#fff;}
+    @media print{.toolbar{display:none;}}
+    </style></head><body>
+    <div class="toolbar"><button onclick="window.print()">🖨️ طباعة / حفظ PDF <span class="bl">Print / Save as PDF</span></button></div>
+    ${customHeaderHtml(company)}
+    <h2>${esc(company.nameAr)} <span class="bl">${esc(company.nameEn)}</span></h2>
+    <div class="sub">ملخص مسير العمالة الخارجية <span class="bl">Contractor Payroll Summary</span> — ${r.month}/${r.yearG} — عدد المقاولين <span class="bl">Contractors</span>: ${r.lines.length}</div>
+    <table><thead><tr><th>#</th><th>الاسم<span class="bl">Name</span></th><th>رقم الهوية<span class="bl">ID No.</span></th>
+      <th>نوع التعاقد<span class="bl">Contract Type</span></th><th>الجهة الكافلة<span class="bl">Sponsor</span></th>
+      <th>المبلغ<span class="bl">Amount</span></th><th>الخصم<span class="bl">Deduction</span></th>
+      <th>الصافي<span class="bl">Net</span></th><th>الدفع<span class="bl">Payment</span></th></tr></thead>
+    <tbody>${rows}<tr class="tot"><td colspan="5" style="text-align:left;">الإجمالي <span class="bl">Total</span></td><td>${n(totAmount)}</td><td>${n(totDed)}</td><td>${n(totNet)}</td><td></td></tr></tbody></table>
+    ${customFooterHtml(company)}
+    </body></html>`);
+    w.document.close();
+    setTimeout(() => w.print(), 400);
+  }catch(e){ toast(e.message, true); }
+}
+// Signature-collection sheet — one row per contractor with a signature +
+// date line, mirroring the employee Cash Receipt Sheet.
+async function printContractorReceiptSheet(){
+  const r = currentContractorPayrollRun;
+  if (!r || !(r.lines||[]).length) return toast('لا توجد بيانات في هذا المسير', true);
+  try{
+    const company = await api(`/companies/${activeCompanyId}`);
+    const rowsHtml = r.lines.map((l,i) => `<tr>
+      <td>${i+1}</td>
+      <td style="font-family:monospace;">${esc(l.idNo||'-')}</td>
+      <td style="text-align:right;">${esc(l.name)}</td>
+      <td>${esc(l.contractType||'-')}</td>
+      <td>${esc(l.sponsorName||'-')}</td>
+      <td style="font-weight:700;">${n(l.netAmount)}</td>
+      <td class="sig-cell"></td>
+      <td class="sig-cell"></td>
+    </tr>`).join('');
+    const totalNet = r.lines.reduce((s,l) => s + Number(l.netAmount||0), 0);
+    const w = window.open('', '_blank');
+    w.document.write(`<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8">
+    <style>@page{size:A4 landscape;margin:10mm;}body{font-family:Arial;font-size:10pt;direction:rtl;}
+    .bl{opacity:.6;font-size:.85em;}
+    h2{color:#1a3a6b;text-align:center;margin-bottom:2px;}
+    .sub{text-align:center;font-size:9pt;color:#555;margin-bottom:10px;}
+    table{width:100%;border-collapse:collapse;}
+    th{background:#1a3a6b;color:#fff;padding:8px 6px;font-size:9.5pt;}
+    td{padding:9px 6px;border-bottom:1px solid #ddd;text-align:center;}
+    tr:nth-child(even) td{background:#f5f8ff;}
+    .sig-cell{min-width:110px;border-right:1px dashed #bbb;}
+    tfoot td{background:#e8f0ff;font-weight:800;color:#1a3a6b;border-top:2px solid #1a3a6b;}
+    .toolbar{display:flex;gap:8px;justify-content:center;margin-bottom:12px;}
+    .toolbar button{padding:8px 16px;border:none;border-radius:6px;cursor:pointer;font-size:11.5pt;font-weight:600;font-family:inherit;background:#0f2557;color:#fff;}
+    @media print{.toolbar{display:none;}}
+    </style></head><body>
+    <div class="toolbar"><button onclick="window.print()">🖨️ طباعة / حفظ PDF <span class="bl">Print / Save as PDF</span></button></div>
+    ${customHeaderHtml(company)}
+    <h2>${esc(company.nameAr)} <span class="bl">${esc(company.nameEn)}</span></h2>
+    <div class="sub">كشف استلام دفعات العمالة الخارجية <span class="bl">Contractor Payment Receipt Sheet</span> — ${r.month}/${r.yearG} — عدد المستلمين <span class="bl">Recipients</span>: ${r.lines.length}</div>
+    <table><thead><tr>
+      <th>#</th><th>رقم الهوية<span class="bl">ID No.</span></th><th>الاسم<span class="bl">Name</span></th>
+      <th>نوع التعاقد<span class="bl">Contract Type</span></th><th>الجهة الكافلة<span class="bl">Sponsor</span></th>
+      <th>الصافي<span class="bl">Net Amount</span></th><th>التوقيع<span class="bl">Signature</span></th><th>التاريخ<span class="bl">Date</span></th>
+    </tr></thead>
+    <tbody>${rowsHtml}</tbody>
+    <tfoot><tr><td colspan="5" style="text-align:left;">الإجمالي <span class="bl">Total</span></td><td>${n(totalNet)}</td><td colspan="2"></td></tr></tfoot>
+    </table>
+    ${customFooterHtml(company)}
+    </body></html>`);
+    w.document.close();
+    setTimeout(() => w.print(), 400);
+  }catch(e){ toast(e.message, true); }
+}
+async function exportContractorPayrollExcel(){
+  if (!currentContractorPayrollRun) return toast('اختر مسيراً أولاً', true);
+  try{
+    const res = await fetch(`${API}/companies/${activeCompanyId}/contractor-payroll-runs/${currentContractorPayrollRun.id}/export/xlsx`, { headers: { Authorization: 'Bearer ' + token } });
+    if (!res.ok) throw new Error((await res.json().catch(()=>({}))).error || 'Export failed');
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `contractor-payroll-${currentContractorPayrollRun.month}-${currentContractorPayrollRun.yearG}.xlsx`;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  }catch(e){ toast(e.message, true); }
 }
 
 // --- Branches ---

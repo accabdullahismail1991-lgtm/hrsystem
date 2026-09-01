@@ -20,10 +20,16 @@ const toApi = (r) => ({
   email: r.email,
   status: r.status,
   notes: r.notes,
+  idNo: r.id_no,
+  idType: r.id_type,
+  nat: r.nat,
+  sponsorName: r.sponsor_name,
+  bank: r.bank,
+  iban: r.iban,
 });
 
-const FIELDS = ['name', 'contractorType', 'contractType', 'rate', 'currency', 'dept', 'project', 'startDate', 'endDate', 'phone', 'email', 'status', 'notes'];
-const COLUMN = { contractorType: 'contractor_type', contractType: 'contract_type', startDate: 'start_date', endDate: 'end_date' };
+const FIELDS = ['name', 'contractorType', 'contractType', 'rate', 'currency', 'dept', 'project', 'startDate', 'endDate', 'phone', 'email', 'status', 'notes', 'idNo', 'idType', 'nat', 'sponsorName', 'bank', 'iban'];
+const COLUMN = { contractorType: 'contractor_type', contractType: 'contract_type', startDate: 'start_date', endDate: 'end_date', idNo: 'id_no', idType: 'id_type', sponsorName: 'sponsor_name' };
 
 function toDb(body) {
   const row = {};
