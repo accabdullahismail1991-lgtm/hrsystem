@@ -44,7 +44,11 @@ multi-tenancy on top of the standalone payroll app in `../index.html`:
   (basic/housing/transport/other/overtime/bonus, absence days, deductions).
   Gross/net pay is computed server-side in `src/payrollCalc.js` (ported
   from the original app's `calcEmp`) and stored as a snapshot per line, so
-  a later salary change never rewrites payroll history.
+  a later salary change never rewrites payroll history. Each employee can
+  carry a **project** (cost allocation) alongside their branch-linked
+  **cost center**; the project is what the salary is charged to on the
+  payroll table, printed summary, and Excel export — falling back to the
+  branch cost center whenever no project is assigned.
 - **Advances & settlements** — cash advances with monthly deduction plans;
   status (pending/partial/settled) is derived from the sum of recorded
   settlements, never stored redundantly.

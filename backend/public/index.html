@@ -254,6 +254,7 @@ table.dtbl input[type=number]:focus,table.dtbl input[type=text]:focus{outline:2p
           <div class="fg"><label>المسمى الوظيفي (عربي)<span class="bl">Job Title (Arabic)</span></label><input id="e_jobar"></div>
           <div class="fg"><label>المسمى الوظيفي (إنجليزي)<span class="bl">Job Title (English)</span></label><input id="e_joben"></div>
           <div class="fg"><label>مركز التكلفة<span class="bl">Cost Center</span></label><input id="e_cc"></div>
+          <div class="fg"><label>المشروع<span class="bl">Project (salary allocation — falls back to branch cost center if empty)</span></label><input id="e_project"></div>
           <div class="fg"><label>الفرع<span class="bl">Branch</span></label><select id="e_branchId"><option value="">—</option></select></div>
           <div class="fg"><label>تاريخ التعيين<span class="bl">Hire Date (needed for EOS)</span></label><input id="e_hire" type="date"></div>
           <div class="fg"><label>الحالة<span class="bl">Status</span></label>
@@ -1101,7 +1102,7 @@ function filterRows(rows, filterText, fields){
 }
 
 // --- Employees ---
-const EMP_FIELD_IDS =['e_namear','e_nameen','e_empno','e_idno','e_idtype','e_idexp','e_iqama','e_passport','e_nat','e_gender','e_dob','e_phone','e_email','e_dept','e_jobar','e_joben','e_cc','e_branchId','e_hire','e_status','e_basic','e_housing','e_transport','e_other','e_gosiEmpPct','e_gosiEmp','e_healthIns','e_incomeTax','e_unionFee','e_gosiErPct','e_gosiEr','e_otherEr','e_pay','e_bank','e_iban','e_swift','e_notes'];
+const EMP_FIELD_IDS =['e_namear','e_nameen','e_empno','e_idno','e_idtype','e_idexp','e_iqama','e_passport','e_nat','e_gender','e_dob','e_phone','e_email','e_dept','e_jobar','e_joben','e_cc','e_project','e_branchId','e_hire','e_status','e_basic','e_housing','e_transport','e_other','e_gosiEmpPct','e_gosiEmp','e_healthIns','e_incomeTax','e_unionFee','e_gosiErPct','e_gosiEr','e_otherEr','e_pay','e_bank','e_iban','e_swift','e_notes'];
 const EMP_NUMBER_FIELDS = ['basic','housing','transport','other','gosiEmpPct','gosiEmp','healthIns','incomeTax','unionFee','gosiErPct','gosiEr','otherEr'];
 let _employeesCache = [];
 let _fixedDeds = [];
@@ -2102,7 +2103,7 @@ function renderPayrollTable(){
   const del = canEdit ? '<th>حذف</th>' : '';
   const seqTh = `<th class="sortable" onclick="resetPayrollLineOrder()" title="إعادة الترتيب حسب التسلسل / Reset to sequence order">#</th>`;
   let html = `<thead><tr>
-    ${seqTh}${sortTh('الرقم الوظيفي','empno',_prLineSort,'sortPayrollLinesBy')}${sortTh('رقم الهوية','idno',_prLineSort,'sortPayrollLinesBy')}${sortTh('الاسم','namear',_prLineSort,'sortPayrollLinesBy')}${sortTh('القسم','dept',_prLineSort,'sortPayrollLinesBy')}${sortTh('الفرع/مركز التكلفة','cc',_prLineSort,'sortPayrollLinesBy')}
+    ${seqTh}${sortTh('الرقم الوظيفي','empno',_prLineSort,'sortPayrollLinesBy')}${sortTh('رقم الهوية','idno',_prLineSort,'sortPayrollLinesBy')}${sortTh('الاسم','namear',_prLineSort,'sortPayrollLinesBy')}${sortTh('القسم','dept',_prLineSort,'sortPayrollLinesBy')}${sortTh('الفرع/مركز التكلفة','cc',_prLineSort,'sortPayrollLinesBy')}<th title="المشروع المحمّل عليه الراتب — يُستخدم مركز تكلفة الفرع تلقائياً عند عدم توفر مشروع">المشروع/التوزيع</th>
     <th>حضور</th><th>غياب</th>
     <th>الأساسي</th><th>السكن</th><th>النقل</th><th>أخرى</th><th>المستحق</th>
     <th>إضافي</th><th>حوافز</th><th>الإجمالي</th>
@@ -2110,7 +2111,7 @@ function renderPayrollTable(){
     <th>الدفع</th><th>ملاحظات</th><th>طباعة</th>${del}</tr></thead><tbody>`;
   let totalNet = 0, totalGross = 0;
   const q = document.getElementById('pr_lineFilter')?.value || '';
-  const filteredLines = filterRows(r.lines || [], q, ['empno','idno','namear','dept','cc']);
+  const filteredLines = filterRows(r.lines || [], q, ['empno','idno','namear','dept','cc','project']);
   const sortedLines = sortRows(filteredLines, _prLineSort, (l,k) => l[k]);
   sortedLines.forEach((l,i) => {
     totalNet += l.netPay; totalGross += l.grossPay;
@@ -2124,6 +2125,7 @@ function renderPayrollTable(){
       <td style="text-align:right;">${esc(l.namear)}</td>
       <td>${esc(l.dept||'-')}</td>
       <td>${esc(l.cc||'-')}</td>
+      <td>${esc(l.project || l.cc || 'بدون توزيع')}</td>
       <td style="color:var(--green);">${present}</td>
       <td>${editable('absentDays', l.absentDays, 45)}</td>
       <td>${esc(l.basic)}</td>
@@ -2211,7 +2213,8 @@ function buildPayrollSlipHtml(company, r, l, tc){
         <div class="sic"><div class="sic-lbl">ID No. / رقم الهوية</div><div class="sic-val" style="font-family:monospace;">${esc(l.idno||'-')}</div></div>
         <div class="sic" style="grid-column:span 2;"><div class="sic-lbl">Employee / الموظف</div><div class="sic-val">${esc(l.namear)}</div></div>
         <div class="sic"><div class="sic-lbl">Dept / الإدارة</div><div class="sic-val">${esc(l.dept||'-')}</div></div>
-        <div class="sic" style="grid-column:span 2;"><div class="sic-lbl">Branch / Cost Center — الفرع / مركز التكلفة</div><div class="sic-val">${esc(l.cc||'-')}</div></div>
+        <div class="sic"><div class="sic-lbl">Branch / Cost Center — الفرع / مركز التكلفة</div><div class="sic-val">${esc(l.cc||'-')}</div></div>
+        <div class="sic"><div class="sic-lbl">Project / المشروع</div><div class="sic-val">${esc(l.project || l.cc || '-')}</div></div>
       </div>
       <div class="slip-info-row" style="border-top:1px solid #c8d4e8;grid-template-columns:repeat(4,1fr);">
         <div class="sic"><div class="sic-lbl">Work Days</div><div class="sic-val">${r.workDays}</div></div>
@@ -2380,6 +2383,7 @@ const PAYROLL_SUMMARY_COLUMN_DEFS = [
   { key:'name',       ar:'الاسم',                   en:'Name',         numeric:false, locked:true  },
   { key:'dept',       ar:'القسم',                   en:'Dept',         numeric:false },
   { key:'cc',         ar:'الفرع/مركز التكلفة',      en:'Branch/CC',    numeric:false },
+  { key:'project',    ar:'المشروع/التوزيع',         en:'Project',      numeric:false },
   { key:'present',    ar:'حضور',                    en:'Present',      numeric:true  },
   { key:'absent',     ar:'غياب',                    en:'Absent',       numeric:true  },
   { key:'basic',      ar:'الأساسي',                 en:'Basic',        numeric:true  },
@@ -2448,6 +2452,7 @@ function payrollSummaryCellHtml(col, l, idx, present){
     case 'name': val = esc(l.namear); break;
     case 'dept': val = esc(l.dept||'-'); break;
     case 'cc': val = esc(l.cc||'-'); break;
+    case 'project': val = esc(l.project || l.cc || 'بدون توزيع'); break;
     case 'present': val = present; break;
     case 'absent': val = l.absentDays; break;
     case 'payMethod': val = esc(l.payMethod); break;

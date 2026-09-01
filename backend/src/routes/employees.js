@@ -48,6 +48,7 @@ const toApi = (r) => ({
   jobar: r.jobar,
   joben: r.joben,
   cc: r.cc,
+  project: r.project,
   nat: r.nat,
   gender: r.gender,
   dob: r.dob,
@@ -76,7 +77,7 @@ const toApi = (r) => ({
   attachments: parseJsonArray(r.attachments),
 });
 
-const FIELDS = ['branchId', 'empno', 'idno', 'idtype', 'idexp', 'iqama', 'passport', 'namear', 'nameen', 'dept', 'jobar', 'joben', 'cc', 'nat', 'gender', 'dob', 'basic', 'housing', 'transport', 'other', 'status', 'hire', 'phone', 'email', 'bank', 'iban', 'swift', 'pay', 'gosiEmpPct', 'gosiEmp', 'healthIns', 'incomeTax', 'unionFee', 'gosiErPct', 'gosiEr', 'otherEr', 'notes', 'fixedDeductions', 'attachments'];
+const FIELDS = ['branchId', 'empno', 'idno', 'idtype', 'idexp', 'iqama', 'passport', 'namear', 'nameen', 'dept', 'jobar', 'joben', 'cc', 'project', 'nat', 'gender', 'dob', 'basic', 'housing', 'transport', 'other', 'status', 'hire', 'phone', 'email', 'bank', 'iban', 'swift', 'pay', 'gosiEmpPct', 'gosiEmp', 'healthIns', 'incomeTax', 'unionFee', 'gosiErPct', 'gosiEr', 'otherEr', 'notes', 'fixedDeductions', 'attachments'];
 const COLUMN = {
   branchId: 'branch_id', hire: 'hire_date',
   gosiEmpPct: 'gosi_emp_pct', gosiEmp: 'gosi_emp', healthIns: 'health_ins', incomeTax: 'income_tax', unionFee: 'union_fee',
