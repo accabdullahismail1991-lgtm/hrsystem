@@ -1437,10 +1437,10 @@ function renderContractorPayrollTable(){
   const del = canEdit ? '<th>حذف</th>' : '';
   let html = `<thead><tr>
     <th>#</th><th>الاسم</th><th>رقم الهوية</th><th>نوع التعاقد</th><th>الجهة الكافلة</th>
-    <th>المبلغ</th><th>الخصم</th><th>الصافي</th><th>طريقة الدفع</th><th>ملاحظات</th><th>طباعة</th>${del}</tr></thead><tbody>`;
-  let totalAmount = 0, totalNet = 0;
+    <th>المبلغ</th><th>مكافآت</th><th>الخصم</th><th>الصافي</th><th>طريقة الدفع</th><th>ملاحظات</th><th>طباعة</th>${del}</tr></thead><tbody>`;
+  let totalAmount = 0, totalBonus = 0, totalNet = 0;
   (r.lines||[]).forEach((l,i) => {
-    totalAmount += l.amount; totalNet += l.netAmount;
+    totalAmount += l.amount; totalBonus += l.bonus; totalNet += l.netAmount;
     const editable = canEdit ? (field, val, w) => `<input type="number" value="${val}" style="width:${w||70}px;" onchange="updateContractorPayrollLine(${l.id}, '${field}', this.value)">` : (field, val) => esc(val);
     const editableNote = canEdit ? `<input type="text" value="${esc(l.note||'')}" style="width:110px;" onchange="updateContractorPayrollLine(${l.id}, 'note', this.value)">` : esc(l.note||'-');
     html += `<tr>
@@ -1450,6 +1450,7 @@ function renderContractorPayrollTable(){
       <td>${esc(l.contractType||'-')}</td>
       <td>${esc(l.sponsorName||'-')}</td>
       <td>${editable('amount', l.amount)}</td>
+      <td>${editable('bonus', l.bonus)}</td>
       <td>${editable('deduction', l.deduction)}</td>
       <td style="font-weight:700;color:var(--green);">${esc(l.netAmount)}</td>
       <td>${esc(l.payMethod)}</td>
@@ -1458,7 +1459,7 @@ function renderContractorPayrollTable(){
     if (canEdit) html += `<td><button class="btn btn-red btn-sm" onclick="deleteContractorPayrollLine(${l.id})">🗑</button></td>`;
     html += `</tr>`;
   });
-  html += `<tr class="tot-row"><td colspan="5" style="text-align:left;font-weight:700;">الإجمالي / Total</td><td style="font-weight:700;">${totalAmount.toLocaleString()}</td><td></td><td style="font-weight:700;color:var(--green);">${totalNet.toLocaleString()}</td><td colspan="2"></td><td></td>${canEdit?'<td></td>':''}</tr>`;
+  html += `<tr class="tot-row"><td colspan="5" style="text-align:left;font-weight:700;">الإجمالي / Total</td><td style="font-weight:700;">${totalAmount.toLocaleString()}</td><td style="font-weight:700;">${totalBonus.toLocaleString()}</td><td></td><td style="font-weight:700;color:var(--green);">${totalNet.toLocaleString()}</td><td colspan="2"></td><td></td>${canEdit?'<td></td>':''}</tr>`;
   document.getElementById('cpTable').innerHTML = html + '</tbody>';
 }
 async function updateContractorPayrollLine(lineId, field, value){
@@ -1499,7 +1500,9 @@ function buildContractorSlipHtml(company, r, l, tc){
       <div class="slip-body" style="grid-template-columns:1fr;">
         <div class="slip-sec">
           ${sr('المبلغ المستحق','Amount Due', l.amount)}
+          ${sr('مكافآت','Bonus', l.bonus, true)}
           ${sr('الخصومات','Deductions', -l.deduction, true)}
+          ${l.note?`<div class="srow" style="margin-top:5px;"><span class="srow-lbl">ملاحظات<span class="srow-lbl-en">Notes</span></span><span class="srow-val" style="direction:rtl;text-align:right;">${esc(l.note)}</span></div>`:''}
         </div>
       </div>
       <div class="slip-totals" style="grid-template-columns:1fr;">
@@ -1552,13 +1555,14 @@ async function printContractorPayrollSummary(){
   if (!r || !(r.lines||[]).length) return toast('لا توجد بيانات في هذا المسير', true);
   try{
     const company = await api(`/companies/${activeCompanyId}`);
-    let totAmount = 0, totDed = 0, totNet = 0;
+    let totAmount = 0, totBonus = 0, totDed = 0, totNet = 0;
     const rows = r.lines.map((l,i) => {
-      totAmount += l.amount; totDed += l.deduction; totNet += l.netAmount;
+      totAmount += l.amount; totBonus += (l.bonus||0); totDed += l.deduction; totNet += l.netAmount;
       return `<tr><td>${i+1}</td><td style="text-align:right;">${esc(l.name)}</td><td style="font-family:monospace;">${esc(l.idNo||'-')}</td>
         <td>${esc(l.contractType||'-')}</td><td>${esc(l.sponsorName||'-')}</td>
-        <td style="font-weight:700;">${n(l.amount)}</td><td>${n(l.deduction)}</td>
-        <td style="font-weight:700;color:#1a6b3a;">${n(l.netAmount)}</td><td>${esc(l.payMethod)}</td></tr>`;
+        <td style="font-weight:700;">${n(l.amount)}</td><td>${n(l.bonus||0)}</td><td>${n(l.deduction)}</td>
+        <td style="font-weight:700;color:#1a6b3a;">${n(l.netAmount)}</td><td>${esc(l.payMethod)}</td>
+        <td style="text-align:right;font-size:.9em;">${esc(l.note||'-')}</td></tr>`;
     }).join('');
     const w = window.open('', '_blank');
     w.document.write(`<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8">
@@ -1580,9 +1584,9 @@ async function printContractorPayrollSummary(){
     <div class="sub">ملخص مسير العمالة الخارجية <span class="bl">Contractor Payroll Summary</span> — ${r.month}/${r.yearG} — عدد المقاولين <span class="bl">Contractors</span>: ${r.lines.length}</div>
     <table><thead><tr><th>#</th><th>الاسم<span class="bl">Name</span></th><th>رقم الهوية<span class="bl">ID No.</span></th>
       <th>نوع التعاقد<span class="bl">Contract Type</span></th><th>الجهة الكافلة<span class="bl">Sponsor</span></th>
-      <th>المبلغ<span class="bl">Amount</span></th><th>الخصم<span class="bl">Deduction</span></th>
-      <th>الصافي<span class="bl">Net</span></th><th>الدفع<span class="bl">Payment</span></th></tr></thead>
-    <tbody>${rows}<tr class="tot"><td colspan="5" style="text-align:left;">الإجمالي <span class="bl">Total</span></td><td>${n(totAmount)}</td><td>${n(totDed)}</td><td>${n(totNet)}</td><td></td></tr></tbody></table>
+      <th>المبلغ<span class="bl">Amount</span></th><th>مكافآت<span class="bl">Bonus</span></th><th>الخصم<span class="bl">Deduction</span></th>
+      <th>الصافي<span class="bl">Net</span></th><th>الدفع<span class="bl">Payment</span></th><th>ملاحظات<span class="bl">Notes</span></th></tr></thead>
+    <tbody>${rows}<tr class="tot"><td colspan="5" style="text-align:left;">الإجمالي <span class="bl">Total</span></td><td>${n(totAmount)}</td><td>${n(totBonus)}</td><td>${n(totDed)}</td><td>${n(totNet)}</td><td></td><td></td></tr></tbody></table>
     ${customFooterHtml(company)}
     </body></html>`);
     w.document.close();

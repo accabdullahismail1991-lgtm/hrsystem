@@ -26,6 +26,7 @@ const lineToApi = (l) => ({
   contractType: l.contract_type_snapshot,
   sponsorName: l.sponsor_snapshot,
   amount: Number(l.amount),
+  bonus: Number(l.bonus),
   deduction: Number(l.deduction),
   netAmount: Number(l.net_amount),
   payMethod: l.pay_method,
@@ -105,6 +106,7 @@ router.post('/:runId/generate', requireCompanyRole('managePayroll'), async (req,
       contract_type_snapshot: c.contract_type,
       sponsor_snapshot: c.sponsor_name,
       amount,
+      bonus: 0,
       deduction: 0,
       net_amount: amount,
       pay_method: 'Transfer',
@@ -121,13 +123,15 @@ router.patch('/:runId/lines/:lineId', requireCompanyRole('managePayroll'), async
 
   const patch = {};
   if (req.body.amount !== undefined) patch.amount = Number(req.body.amount) || 0;
+  if (req.body.bonus !== undefined) patch.bonus = Number(req.body.bonus) || 0;
   if (req.body.deduction !== undefined) patch.deduction = Number(req.body.deduction) || 0;
   if (req.body.payMethod !== undefined) patch.pay_method = req.body.payMethod;
   if (req.body.note !== undefined) patch.note = req.body.note;
 
   const amount = patch.amount !== undefined ? patch.amount : Number(line.amount);
+  const bonus = patch.bonus !== undefined ? patch.bonus : Number(line.bonus);
   const deduction = patch.deduction !== undefined ? patch.deduction : Number(line.deduction);
-  patch.net_amount = amount - deduction;
+  patch.net_amount = amount + bonus - deduction;
   patch.updated_at = new Date();
 
   await db('contractor_payroll_lines').where({ id: line.id }).update(patch);
@@ -154,6 +158,7 @@ router.get('/:runId/export/xlsx', requireCompanyRole('view'), async (req, res) =
     { key: 'contractType', header: 'نوع التعاقد / Contract Type', width: 14 },
     { key: 'sponsor', header: 'الجهة الكافلة / Sponsor', width: 20 },
     { key: 'amount', header: 'المبلغ / Amount', width: 12 },
+    { key: 'bonus', header: 'مكافآت / Bonus', width: 12 },
     { key: 'deduction', header: 'الخصم / Deduction', width: 12 },
     { key: 'netAmount', header: 'الصافي / Net Amount', width: 12 },
     { key: 'payMethod', header: 'طريقة الدفع / Payment', width: 12 },
@@ -163,7 +168,7 @@ router.get('/:runId/export/xlsx', requireCompanyRole('view'), async (req, res) =
   lines.forEach((l) => {
     sheet.addRow({
       name: l.name_snapshot, idNo: l.id_no_snapshot, contractType: l.contract_type_snapshot, sponsor: l.sponsor_snapshot,
-      amount: Number(l.amount), deduction: Number(l.deduction), netAmount: Number(l.net_amount),
+      amount: Number(l.amount), bonus: Number(l.bonus), deduction: Number(l.deduction), netAmount: Number(l.net_amount),
       payMethod: l.pay_method, note: l.note,
     });
   });
