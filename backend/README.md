@@ -35,10 +35,12 @@ multi-tenancy on top of the standalone payroll app in `../index.html`:
   contract rate (editable per line, e.g. to reflect actual days/hours for
   daily/hourly contracts), plus an editable bonus/reward (مكافآت) line and
   a free-text note per contractor, both folded into the net amount
-  (amount + bonus − deduction); printable summary, a per-contractor
-  payment slip with a signature/date line (individually and as "Print
-  All") showing the bonus and note, a signature-collection sheet across
-  all contractors in a run, and an Excel export.
+  (amount + bonus − deduction); a payment method per line (Cash/Transfer,
+  editable on-screen, badge on the slip); printable summary, a
+  per-contractor payment slip with a signature/date line (individually
+  and as "Print All") showing the bonus, note, and payment method, a
+  signature-collection sheet across all contractors in a run, and an
+  Excel export.
 - **Branches**.
 - **Payroll runs** — one run per month/year, with a line per employee
   (basic/housing/transport/other/overtime/bonus, absence days, deductions).
